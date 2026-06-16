@@ -124,7 +124,12 @@ const OAK_TRUNK_GEO = (() => {
   g.translate(0, 2.0, 0); // base at 0, top at 4
   return g;
 })();
-const TRUNK_MAT = new THREE.MeshStandardMaterial({ color: 0x5c3e20, roughness: 0.9, metalness: 0 });
+const TRUNK_MAT = new THREE.MeshStandardMaterial({
+  map: (() => { const t = textureLoader.load('/textures/bark.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 2); return t; })(),
+  color: 0x7a5a3a,
+  roughness: 0.95,
+  metalness: 0,
+});
 
 // Pine canopy: dense conical volume of randomly oriented circular leaf discs.
 const PINE_CANOPY_GEO = (() => {
@@ -171,6 +176,20 @@ const OAK_CANOPY_GEO = (() => {
   }
   return BufferGeometryUtils.mergeGeometries(leaves, false);
 })();
+
+// Giant mushroom (mushroom biome): thick stem + wide spotted cap.
+const MUSHROOM_STEM_GEO = (() => {
+  const g = new THREE.CylinderGeometry(0.4, 0.55, 4.0, 12);
+  g.translate(0, 2.0, 0);
+  return g;
+})();
+const MUSHROOM_CAP_GEO = (() => {
+  const g = new THREE.SphereGeometry(2.5, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+  g.translate(0, 3.8, 0);
+  return g;
+})();
+const MUSHROOM_STEM_MAT = new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.85 });
+const MUSHROOM_CAP_MAT = new THREE.MeshStandardMaterial({ color: 0xcc3355, roughness: 0.6, metalness: 0.1 });
 
 // Cactus: body + arms + spikes + a small flower on top.
 const CACTUS_GEO = (() => {
@@ -255,6 +274,7 @@ const DENSITY: Record<Biome, { grass: number; trees: number; rocks: number; ston
   grassland: { grass: 8000, trees: 5, rocks: 8, stones: 1, flowers: 50 },
   forest: { grass: 6000, trees: 26, rocks: 10, stones: 2, flowers: 30 },
   desert: { grass: 50, trees: 3, rocks: 6, stones: 2, flowers: 12 },
+  mushroom: { grass: 3000, trees: 12, rocks: 4, stones: 1, flowers: 60 },
   rocky: { grass: 800, trees: 2, rocks: 44, stones: 5, flowers: 8 },
   snow: { grass: 400, trees: 7, rocks: 16, stones: 2, flowers: 4 },
 };
@@ -380,6 +400,8 @@ export class ChunkManager {
       this.placeTrees(group, trees, PINE_TRUNK_GEO, PINE_CANOPY_GEO, LEAF_MAT, d.trees, centerX, centerZ, rand, rng);
     } else if (biome === 'snow') {
       this.placeTrees(group, trees, PINE_TRUNK_GEO, PINE_CANOPY_GEO, SNOW_LEAF_MAT, d.trees, centerX, centerZ, rand, rng);
+    } else if (biome === 'mushroom') {
+      this.placeMushrooms(group, trees, d.trees, centerX, centerZ, rand, rng);
     } else {
       this.placeTrees(group, trees, OAK_TRUNK_GEO, OAK_CANOPY_GEO, LEAF_MAT, d.trees, centerX, centerZ, rand, rng);
     }
@@ -459,52 +481,6 @@ export class ChunkManager {
           const radius = 4 + rng() * 8;
           this.hazardPools.createPool(poolType, px, pz, radius, group);
         }
-      }
-    }
-
-    // Ramp: proper skateboard-style half-pipe ramp (filled in, goes high).
-    if (rng() > 0.7) {
-      const rx = centerX + rand();
-      const rz = centerZ + rand();
-      if (terrainSlopeDegrees(rx, rz) < 15) {
-        const ry = terrainElevation(rx, rz);
-        const rampYaw = rng() * Math.PI * 2;
-        const rampGroup = new THREE.Group();
-        rampGroup.position.set(rx, ry, rz);
-        rampGroup.rotation.y = rampYaw;
-
-        // Ramp surface (angled up at 35 degrees, longer/taller).
-        const surface = new THREE.Mesh(
-          new THREE.BoxGeometry(4, 0.15, 8, 8, 2, 12),
-          new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.6, metalness: 0.3 }),
-        );
-        surface.position.set(0, 2.0, 0);
-        surface.rotation.x = -0.55; // ~32 degrees
-        surface.castShadow = true;
-        rampGroup.add(surface);
-
-        // Fill / support structure beneath the ramp surface.
-        const fill = new THREE.Mesh(
-          new THREE.BoxGeometry(4, 3.5, 4, 6, 6, 6),
-          new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 }),
-        );
-        fill.position.set(0, 1.5, -2.2);
-        fill.castShadow = true;
-        rampGroup.add(fill);
-
-        // Side walls.
-        for (const sx of [-2.05, 2.05]) {
-          const wall = new THREE.Mesh(
-            new THREE.BoxGeometry(0.15, 4, 8, 2, 6, 10),
-            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 }),
-          );
-          wall.position.set(sx, 2.0, 0);
-          rampGroup.add(wall);
-        }
-
-        group.add(rampGroup);
-        // Physics collider (large enough to cover the ramp).
-        stoneIds.push(this.physics.addStaticBoulder({ x: rx, y: ry + 2, z: rz }, 3.5, 0.3));
       }
     }
 
@@ -628,6 +604,45 @@ export class ChunkManager {
         0.7,
       );
       trees.push({ bodyId, mesh: treeGroup, x: wx, z: wz, radius });
+    }
+  }
+
+  /** Place giant mushroom trees (mushroom biome). */
+  private placeMushrooms(
+    group: THREE.Group,
+    trees: Chunk['trees'],
+    count: number,
+    centerX: number,
+    centerZ: number,
+    rand: () => number,
+    rng: () => number,
+  ): void {
+    for (let i = 0; i < count; i++) {
+      const wx = centerX + rand();
+      const wz = centerZ + rand();
+      if (terrainSlopeDegrees(wx, wz) > 20) continue;
+      const s = 0.7 + rng() * 1.0;
+      const wy = terrainElevation(wx, wz);
+
+      const mushroomGroup = new THREE.Group();
+      mushroomGroup.position.set(wx, wy, wz);
+      mushroomGroup.scale.setScalar(s);
+      mushroomGroup.rotation.y = rng() * Math.PI * 2;
+
+      const stem = new THREE.Mesh(MUSHROOM_STEM_GEO, MUSHROOM_STEM_MAT);
+      stem.castShadow = true;
+      mushroomGroup.add(stem);
+
+      const cap = new THREE.Mesh(MUSHROOM_CAP_GEO, MUSHROOM_CAP_MAT);
+      cap.castShadow = true;
+      mushroomGroup.add(cap);
+
+      group.add(mushroomGroup);
+
+      const radius = 0.5 * s;
+      const colliderY = wy + 2.0 * s;
+      const bodyId = this.physics.addStaticBoulder({ x: wx, y: colliderY, z: wz }, radius, 0.6);
+      trees.push({ bodyId, mesh: mushroomGroup, x: wx, z: wz, radius });
     }
   }
 

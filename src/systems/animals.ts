@@ -17,7 +17,7 @@ import type { RapierPhysicsEngine } from './physics-engine';
 import { biomeAt, terrainElevation, type Biome } from './terrain';
 import { playCreatureHit } from './audio';
 
-type AnimalType = 'penguin' | 'sheep' | 'boar' | 'goat' | 'scorpion';
+type AnimalType = 'penguin' | 'sheep' | 'boar' | 'goat' | 'scorpion' | 'frog';
 
 interface AnimalConfig {
   biome: Biome;
@@ -187,12 +187,47 @@ function buildScorpion(): THREE.Group {
   return g;
 }
 
+function buildFrog(): THREE.Group {
+  const g = new THREE.Group();
+  const green = mat(0x44aa44, 0.7);
+  const belly = mat(0x88cc66, 0.6);
+  const eye = mat(0xffee00, 0.4);
+  // Body: squat ellipsoid.
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), green);
+  body.scale.set(1.0, 0.7, 1.2);
+  body.position.y = 0.3;
+  g.add(body);
+  // Belly.
+  const bellyMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), belly);
+  bellyMesh.scale.set(0.9, 0.6, 1.0);
+  bellyMesh.position.set(0, 0.24, 0.08);
+  g.add(bellyMesh);
+  // Eyes (big, on top).
+  for (const sx of [-0.16, 0.16]) {
+    const eyeMesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), eye);
+    eyeMesh.position.set(sx, 0.52, 0.18);
+    g.add(eyeMesh);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), mat(0x111111));
+    pupil.position.set(sx, 0.52, 0.26);
+    g.add(pupil);
+  }
+  // Back legs.
+  for (const sx of [-0.25, 0.25]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.35, 6), green);
+    leg.position.set(sx, 0.12, -0.22);
+    leg.rotation.x = 0.6;
+    g.add(leg);
+  }
+  return g;
+}
+
 const ANIMAL_CONFIG: Record<AnimalType, AnimalConfig> = {
   penguin: { biome: 'snow', speed: 1.4, knockStrength: 1300, build: buildPenguin },
   sheep: { biome: 'grassland', speed: 1.1, knockStrength: 1700, build: buildSheep },
   boar: { biome: 'forest', speed: 1.8, knockStrength: 2600, build: buildBoar },
   goat: { biome: 'rocky', speed: 1.6, knockStrength: 1900, build: buildGoat },
   scorpion: { biome: 'desert', speed: 0.9, knockStrength: 900, build: buildScorpion },
+  frog: { biome: 'mushroom', speed: 1.3, knockStrength: 1100, build: buildFrog },
 };
 
 function makeRng(seed: number): () => number {
@@ -350,7 +385,40 @@ export class AnimalManager {
     a.group.rotation.x += k.spin * step;
     a.group.rotation.z += k.spin * 0.5 * step;
     if (k.y <= ground && k.vy < 0) {
-      this.respawn(a, carPos);
+      // Animal body stays where it landed permanently.
+      a.knocked = null;
+      a.active = false;
+      a.group.position.y = ground;
+      // Spawn a replacement animal of the same type nearby.
+      this.spawnReplacement(a.type, a.biome, carPos);
     }
+  }
+
+  /** Spawn a new animal of the same type to replace a dead one. */
+  private spawnReplacement(type: AnimalType, biome: Biome, carPos: Vec3): void {
+    const cfg = ANIMAL_CONFIG[type];
+    if (!cfg) return;
+    const group = cfg.build();
+    group.visible = false;
+    // Find the scene (parent of existing animals).
+    if (this.animals.length > 0 && this.animals[0]?.group.parent) {
+      this.animals[0].group.parent.add(group);
+    }
+    const newAnimal: Animal = {
+      type,
+      biome,
+      group,
+      speed: cfg.speed,
+      knockStrength: cfg.knockStrength,
+      x: 0,
+      z: 0,
+      heading: this.rng() * Math.PI * 2,
+      wanderTimer: this.rng() * 2,
+      waddlePhase: this.rng() * Math.PI * 2,
+      active: false,
+      knocked: null,
+    };
+    this.animals.push(newAnimal);
+    this.respawn(newAnimal, carPos);
   }
 }

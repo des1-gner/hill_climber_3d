@@ -108,14 +108,15 @@ export function terrainSlopeDegrees(x: number, z: number): number {
 // ---------------------------------------------------------------------------
 
 /** The world's biome categories. */
-export type Biome = 'grassland' | 'forest' | 'rocky' | 'snow' | 'desert';
+export type Biome = 'grassland' | 'forest' | 'rocky' | 'snow' | 'desert' | 'mushroom';
 
 /** Classify the biome at (x, z) from the low-frequency biome field. */
 export function biomeAt(x: number, z: number): Biome {
   const t = biomeParam(x, z);
-  if (t < 0.22) return 'grassland';
-  if (t < 0.42) return 'forest';
-  if (t < 0.58) return 'desert';
+  if (t < 0.18) return 'grassland';
+  if (t < 0.35) return 'forest';
+  if (t < 0.48) return 'desert';
+  if (t < 0.60) return 'mushroom';
   if (t < 0.78) return 'rocky';
   return 'snow';
 }
@@ -125,6 +126,7 @@ export const BIOME_FRICTION: Record<Biome, number> = {
   grassland: 0.75,
   forest: 0.85,
   desert: 0.6,
+  mushroom: 0.65,
   rocky: 1.35,
   snow: 0.25,
 };
@@ -139,6 +141,7 @@ const BIOME_COLOR: Record<Biome, THREE.Color> = {
   grassland: new THREE.Color(0x4f8a3a),
   forest: new THREE.Color(0x3c6b34),
   desert: new THREE.Color(0xc2a060),
+  mushroom: new THREE.Color(0x6a4080),
   rocky: new THREE.Color(0x6f7176),
   snow: new THREE.Color(0xeef2f8),
 };
@@ -152,25 +155,29 @@ const _cBlend = new THREE.Color();
 function vertexColor(x: number, z: number, slopeDeg: number, jitter: number, target: THREE.Color): void {
   const t = biomeParam(x, z);
 
-  // Biome boundaries (matching biomeAt): 0.22, 0.42, 0.58, 0.78
-  // Blend 10% of the range on each side of a boundary.
-  const B = 0.05; // half-width of blend zone
+  // Biome boundaries: 0.18, 0.35, 0.48, 0.60, 0.78
+  const B = 0.04;
 
-  if (t < 0.22 - B) {
+  if (t < 0.18 - B) {
     target.copy(BIOME_COLOR.grassland);
-  } else if (t < 0.22 + B) {
-    const blend = (t - (0.22 - B)) / (2 * B);
+  } else if (t < 0.18 + B) {
+    const blend = (t - (0.18 - B)) / (2 * B);
     target.copy(BIOME_COLOR.grassland).lerp(_cBlend.copy(BIOME_COLOR.forest), blend);
-  } else if (t < 0.42 - B) {
+  } else if (t < 0.35 - B) {
     target.copy(BIOME_COLOR.forest);
-  } else if (t < 0.42 + B) {
-    const blend = (t - (0.42 - B)) / (2 * B);
+  } else if (t < 0.35 + B) {
+    const blend = (t - (0.35 - B)) / (2 * B);
     target.copy(BIOME_COLOR.forest).lerp(_cBlend.copy(BIOME_COLOR.desert), blend);
-  } else if (t < 0.58 - B) {
+  } else if (t < 0.48 - B) {
     target.copy(BIOME_COLOR.desert);
-  } else if (t < 0.58 + B) {
-    const blend = (t - (0.58 - B)) / (2 * B);
-    target.copy(BIOME_COLOR.desert).lerp(_cBlend.copy(BIOME_COLOR.rocky), blend);
+  } else if (t < 0.48 + B) {
+    const blend = (t - (0.48 - B)) / (2 * B);
+    target.copy(BIOME_COLOR.desert).lerp(_cBlend.copy(BIOME_COLOR.mushroom), blend);
+  } else if (t < 0.60 - B) {
+    target.copy(BIOME_COLOR.mushroom);
+  } else if (t < 0.60 + B) {
+    const blend = (t - (0.60 - B)) / (2 * B);
+    target.copy(BIOME_COLOR.mushroom).lerp(_cBlend.copy(BIOME_COLOR.rocky), blend);
   } else if (t < 0.78 - B) {
     target.copy(BIOME_COLOR.rocky);
   } else if (t < 0.78 + B) {

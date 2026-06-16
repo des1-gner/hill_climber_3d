@@ -35,7 +35,6 @@ interface FallingTree {
 }
 
 const GRAVITY = 12;
-const MAX_AGE = 8; // seconds before removal
 
 export class TreeRagdollManager {
   private readonly scene: THREE.Object3D;
@@ -117,10 +116,12 @@ export class TreeRagdollManager {
       t.mesh.position.set(t.x, t.y, t.z);
       t.mesh.rotation.set(t.rx, t.ry, t.rz);
 
-      // Fade out after landing or max age.
-      if (t.age > MAX_AGE || (t.landed && t.age > 3)) {
-        this.scene.remove(t.mesh);
-        this.active.splice(i, 1);
+      // Never remove — fallen trees remain in the world permanently.
+      // Only stop simulating once landed and settled.
+      if (t.landed && t.age > 2) {
+        // Stop physics updates but keep the mesh in place.
+        t.wx = 0; t.wy = 0; t.wz = 0;
+        t.vx = 0; t.vz = 0;
       }
     }
   }
