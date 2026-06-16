@@ -315,24 +315,28 @@ export class Renderer {
     // Chassis as a direct child of the group (sibling of wheels). The chassis
     // node is a group of detail meshes, so enable shadow casting on all of them.
     this.chassisMesh = meshes.chassis;
+
+    // Collect meshes first, then add outlines (avoids traverse + modify loop).
+    const chassisMeshes: THREE.Mesh[] = [];
     this.chassisMesh.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (mesh.isMesh) {
         mesh.castShadow = true;
-        // Add a black outline (inverted-hull method): a slightly-scaled copy
-        // with flipped normals and a black unlit material rendered behind.
-        const mat = mesh.material as THREE.MeshStandardMaterial;
-        if (mat && !mat.transparent) {
-          const outlineMat = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            side: THREE.BackSide,
-          });
-          const outline = new THREE.Mesh(mesh.geometry, outlineMat);
-          outline.scale.multiplyScalar(1.04);
-          mesh.add(outline);
-        }
+        chassisMeshes.push(mesh);
       }
     });
+
+    // Add black outlines (inverted-hull method) after traversal is complete.
+    const outlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+    for (const mesh of chassisMeshes) {
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      if (mat && !mat.transparent) {
+        const outline = new THREE.Mesh(mesh.geometry, outlineMat);
+        outline.scale.multiplyScalar(1.04);
+        mesh.add(outline);
+      }
+    }
+
     this.vehicleGroup.add(this.chassisMesh);
 
     // Wheels as siblings of the chassis under the same group.
