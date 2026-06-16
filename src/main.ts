@@ -36,6 +36,7 @@ const VEHICLE_URLS: Record<CarType, string> = {
   jeep: '/assets/vehicle.glb',
   rally: '/assets/vehicle_rally.glb',
   sports: '/assets/vehicle_sports.glb',
+  plane: '/assets/vehicle_plane.glb',
 };
 
 /** Horizontal (x, z) anchor the vehicle spawns at. */
@@ -81,6 +82,12 @@ function buildVehicleConfig(carType: CarType): VehicleConfig {
     maxBrakeForce = 6000;
     frictionSlip = 1.1;
     suspensionStiffness = 34;
+  } else if (carType === 'plane') {
+    chassisMass = 800;
+    maxEngineForce = 12000; // ground thrust for takeoff run
+    maxBrakeForce = 3000;
+    frictionSlip = 0.9;
+    suspensionStiffness = 20;
   }
 
   const halfWidth = 0.95;
@@ -265,7 +272,7 @@ function reportFatal(overlay: LoadingOverlay, err: unknown): void {
 }
 
 /** Car type selected from the menu. */
-type CarType = 'jeep' | 'rally' | 'sports';
+type CarType = 'jeep' | 'rally' | 'sports' | 'plane';
 
 /** Entry point: show start menu with car selection, then bootstrap. */
 function main(): void {
@@ -287,6 +294,7 @@ function main(): void {
       <button class="car-btn" data-car="jeep" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #cc3322; border-radius: 8px; cursor: pointer; background: #cc3322; color: #fff;">🚙 Jeep</button>
       <button class="car-btn" data-car="rally" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #2288dd; border-radius: 8px; cursor: pointer; background: #2288dd; color: #fff;">🏎️ Rally</button>
       <button class="car-btn" data-car="sports" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #ffaa00; border-radius: 8px; cursor: pointer; background: #ffaa00; color: #111;">⚡ Sports</button>
+      <button class="car-btn" data-car="plane" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #66bbff; border-radius: 8px; cursor: pointer; background: #66bbff; color: #111;">✈️ Plane</button>
     </div>
     <p style="opacity: 0.5; font-size: 0.85rem;">
       W/↑ = throttle &nbsp; S/↓ = brake/reverse &nbsp; A←/D→ = steer &nbsp; Z = camera &nbsp; C = rear view &nbsp; R = reset

@@ -54,6 +54,7 @@ import type { LodController } from './systems/lod-controller';
 import type { ObjectiveManager } from './systems/objective';
 import type { ChunkManager } from './systems/chunk-manager';
 import type { TreeRagdollManager } from './systems/tree-ragdoll';
+import { FlightController } from './systems/flight-physics';
 
 /**
  * Structural type for the HUD collaborator.
@@ -118,7 +119,7 @@ export interface GameLoopDeps {
   /** Optional hazard pools — water slows, lava damages. */
   hazardPools?: { inWater: boolean; inLava: boolean };
   /** Car type for special ability (Q key). */
-  carType?: 'jeep' | 'rally' | 'sports';
+  carType?: 'jeep' | 'rally' | 'sports' | 'plane';
   /** Optional tree ragdoll manager — uprooted trees tumble realistically. */
   treeRagdolls?: TreeRagdollManager;
   /** Optional fuel pickup manager — collected fuel is added to the run state. */
@@ -188,8 +189,9 @@ export class GameLoop {
   private readonly entities: WorldEntity[];
   private readonly chunks: ChunkManager | null;
   private readonly hazardPoolsRef: { inWater: boolean; inLava: boolean } | null;
-  private readonly carType: 'jeep' | 'rally' | 'sports';
+  private readonly carType: 'jeep' | 'rally' | 'sports' | 'plane';
   private readonly treeRagdolls: TreeRagdollManager | null;
+  private readonly flightController: FlightController | null;
   private readonly fuelPickupSource: { lastCollectedFuel: number } | null;
   private damage: DamageState;
 
@@ -243,6 +245,7 @@ export class GameLoop {
     this.hazardPoolsRef = deps.hazardPools ?? null;
     this.carType = deps.carType ?? 'jeep';
     this.treeRagdolls = deps.treeRagdolls ?? null;
+    this.flightController = this.carType === 'plane' ? new FlightController() : null;
     this.fuelPickupSource = deps.fuelPickups ?? null;
     this.damage = { health: 100 };
     this.startPosition = {
@@ -366,7 +369,11 @@ export class GameLoop {
       // Handling degrades with accumulated damage — no floor, no reset.
       const damageFactor = Math.max(0, this.damage.health) / 100;
 
-      this.physics.applyCommand(command, fuelEmpty, damageFactor);
+      // Flight controller takes over physics when airborne (plane only).
+      const inFlight = this.flightController?.step(this.physics, command, FIXED_DT) ?? false;
+      if (!inFlight) {
+        this.physics.applyCommand(command, fuelEmpty, damageFactor);
+      }
       this.physics.step(FIXED_DT);
       const state = this.physics.readState();
 
