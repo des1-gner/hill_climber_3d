@@ -81,10 +81,10 @@ interface LODSettings {
 }
 
 const LOD_SETTINGS: Record<LODLevel, LODSettings> = {
-  0: { shadowsEnabled: false, shadowMapSize: 512, pixelRatioCap: 0.75, drawDistance: 200 },
-  1: { shadowsEnabled: true, shadowMapSize: 512, pixelRatioCap: 1.0, drawDistance: 350 },
-  2: { shadowsEnabled: true, shadowMapSize: 1024, pixelRatioCap: 1.5, drawDistance: 600 },
-  3: { shadowsEnabled: true, shadowMapSize: 2048, pixelRatioCap: 2.0, drawDistance: 1000 },
+  0: { shadowsEnabled: false, shadowMapSize: 512, pixelRatioCap: 0.75, drawDistance: 400 },
+  1: { shadowsEnabled: true, shadowMapSize: 512, pixelRatioCap: 1.0, drawDistance: 600 },
+  2: { shadowsEnabled: true, shadowMapSize: 1024, pixelRatioCap: 1.5, drawDistance: 900 },
+  3: { shadowsEnabled: true, shadowMapSize: 2048, pixelRatioCap: 2.0, drawDistance: 1200 },
 };
 
 function clamp01(v: number): number {
@@ -216,7 +216,7 @@ export class Renderer {
     // Sky: gradient from deep blue at zenith to warm horizon.
     this.scene.background = new THREE.Color(0x6eb5e8);
     // Distance fog blends the far edges of the big map into the sky.
-    this.scene.fog = new THREE.Fog(0x9ecfec, 180, 800);
+    this.scene.fog = new THREE.Fog(0x9ecfec, 280, 1100);
 
     // Sun (a bright sphere in the sky for visual reference).
     const sunGeo = new THREE.SphereGeometry(10, 16, 12);

@@ -437,16 +437,20 @@ export class GameLoop {
       }
     }
 
-    // Sports car glide: gently counteract gravity so the car floats down slowly
-    // instead of rocketing up. Also allow air steering via lateral impulses.
+    // Sports car glide: only slows the fall (doesn't add height). Only works
+    // when airborne (no wheel contact). Air steering available.
     if (this.gliding) {
       this.glideTimer -= elapsedSeconds;
       if (this.glideTimer <= 0) {
         this.gliding = false;
       } else {
-        // Counteract ~70% of gravity (gentle float, not flight).
-        this.physics.applyChassisImpulse({ x: 0, y: 140, z: 0 });
-        // Air steering: apply lateral impulse from the current steering input.
+        // Only counteract gravity when airborne (no wheel contact).
+        const anyContact = this.curr.wheels.some(w => w.inContact);
+        if (!anyContact) {
+          // Small upward impulse to slow descent — NOT enough to gain height.
+          this.physics.applyChassisImpulse({ x: 0, y: 80, z: 0 });
+        }
+        // Air steering.
         const cmd = this.command;
         if (Math.abs(cmd.steerDeg) > 1) {
           this.physics.applyChassisImpulse({ x: cmd.steerDeg * 25, y: 0, z: 0 });
@@ -499,7 +503,9 @@ export class GameLoop {
     }
 
     // 4c. Tree and stone collision detection + damage + uprooting.
-    if (this.chunks) {
+    // Only check when the car is near the ground (at least 1 wheel in contact).
+    const anyWheelContact = this.curr.wheels.some(w => w.inContact);
+    if (this.chunks && anyWheelContact) {
       const carPos = this.curr.chassisPosition;
       const speed = this.curr.horizontalSpeed;
 

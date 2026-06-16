@@ -197,7 +197,7 @@ async function bootstrap(overlay: LoadingOverlay, carType: CarType = 'jeep'): Pr
   // so the vehicle lands on solid ground.
   const fuelPickups = new FuelPickupManager({ fuelPerPickup: 200 });
   const hazardPools = new HazardPoolManager();
-  const chunks = new ChunkManager(renderer.scene, physics, { viewRadius: 3, fuelPickups, hazardPools });
+  const chunks = new ChunkManager(renderer.scene, physics, { viewRadius: 5, fuelPickups, hazardPools });
   const startPosition = resolveSpawn();
   chunks.ensureAround(startPosition);
 
