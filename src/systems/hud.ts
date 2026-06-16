@@ -113,26 +113,6 @@ const HUD_CSS = `
 .hud-summary-distance { font-size: 15px; opacity: 0.85; font-variant-numeric: tabular-nums; }
 .hud-hidden { display: none; }
 
-.hud-health {
-  margin-top: 6px;
-}
-.hud-health-label { font-size: 11px; opacity: 0.7; margin-bottom: 3px; }
-.hud-health-bar {
-  position: relative;
-  height: 10px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  overflow: hidden;
-}
-.hud-health-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, #ff3333, #ff9900, #33cc66);
-  transition: width 200ms linear;
-}
-
 .hud-objective {
   position: absolute;
   top: 16px;
@@ -179,7 +159,6 @@ export class Hud {
   private fuelValue: HTMLElement | null = null;
   private distanceEl: HTMLElement | null = null;
   private statusEl: HTMLElement | null = null;
-  private healthFill: HTMLElement | null = null;
 
   // End-of-run summary nodes.
   private summary: HTMLElement | null = null;
@@ -265,21 +244,6 @@ export class Hud {
     root.appendChild(distanceEl);
     root.appendChild(statusEl);
 
-    // Health bar.
-    const healthDiv = doc.createElement('div');
-    healthDiv.className = 'hud-health';
-    const healthLabel = doc.createElement('div');
-    healthLabel.className = 'hud-health-label';
-    healthLabel.textContent = 'Health';
-    const healthBar = doc.createElement('div');
-    healthBar.className = 'hud-health-bar';
-    const healthFill = doc.createElement('div');
-    healthFill.className = 'hud-health-fill';
-    healthBar.appendChild(healthFill);
-    healthDiv.appendChild(healthLabel);
-    healthDiv.appendChild(healthBar);
-    root.appendChild(healthDiv);
-
     // --- End-of-run summary (hidden until the run ends) ---
     const summary = doc.createElement('div');
     summary.className = 'hud-summary hud-hidden';
@@ -324,7 +288,6 @@ export class Hud {
     this.fuelValue = fuelValue;
     this.distanceEl = distanceEl;
     this.statusEl = statusEl;
-    this.healthFill = healthFill;
     this.summary = summary;
     this.summaryReason = summaryReason;
     this.summaryDistance = summaryDistance;
@@ -389,17 +352,6 @@ export class Hud {
       // Fallback for minimal DOM shims without classList.
       el.style.display = hidden ? 'none' : '';
     }
-  }
-
-  /**
-   * Update the health bar. Called every frame from the game loop.
-   *
-   * @param health current health (0..100)
-   */
-  setHealth(health: number): void {
-    if (!this.healthFill) return;
-    const pct = Math.max(0, Math.min(100, Math.round(health)));
-    this.healthFill.style.width = `${pct}%`;
   }
 
   /**

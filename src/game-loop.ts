@@ -67,8 +67,6 @@ export interface HudLike {
   update(view: HudView): void;
   /** Optional checkpoint readout: reached count + distance to the next one. */
   setObjective?(reachedCount: number, distanceMeters: number): void;
-  /** Optional health bar update. */
-  setHealth?(health: number): void;
 }
 
 /**
@@ -482,7 +480,6 @@ export class GameLoop {
       };
     }
     this.hud.update(toHudView(this.run));
-    this.hud.setHealth?.(this.damage.health);
     this.renderer.applyCrumple(this.damage.health);
 
     // 5b. Dynamic-world entities (penguins, landslides) advance per frame.
