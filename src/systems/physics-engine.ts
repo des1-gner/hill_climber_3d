@@ -269,7 +269,7 @@ export class RapierPhysicsEngine implements PhysicsEngine {
   applyCommand(cmd: DriveCommand, fuelEmpty: boolean, damageFactor = 1): void {
     // damageFactor: 1 = pristine handling, approaches 0 = nearly undrivable.
     // No floor — damage accumulates forever, making it progressively harder.
-    const df = Math.max(0.05, Math.min(1, damageFactor));
+    const df = Math.max(0.10, Math.min(1, damageFactor));
 
     // Negate to correct the steering inversion: +steerDeg (right) must turn the
     // vehicle right.
