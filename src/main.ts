@@ -37,6 +37,7 @@ const VEHICLE_URLS: Record<CarType, string> = {
   rally: '/assets/vehicle_rally.glb',
   sports: '/assets/vehicle_sports.glb',
   plane: '/assets/vehicle_plane.glb',
+  bike: '/assets/vehicle_bike.glb',
 };
 
 /** Horizontal (x, z) anchor the vehicle spawns at. */
@@ -84,15 +85,21 @@ function buildVehicleConfig(carType: CarType): VehicleConfig {
     suspensionStiffness = 34;
   } else if (carType === 'plane') {
     chassisMass = 800;
-    maxEngineForce = 12000; // ground thrust for takeoff run
+    maxEngineForce = 12000;
     maxBrakeForce = 3000;
     frictionSlip = 0.9;
     suspensionStiffness = 20;
+  } else if (carType === 'bike') {
+    chassisMass = 350;
+    maxEngineForce = 6000;
+    maxBrakeForce = 3500;
+    frictionSlip = 1.0;
+    suspensionStiffness = 35;
   }
 
-  const halfWidth = 0.95;
-  const halfLength = 1.5;
-  const mountY = -0.1;
+  const halfWidth = carType === 'bike' ? 0.15 : 0.95;
+  const halfLength = carType === 'bike' ? 1.0 : 1.5;
+  const mountY = carType === 'bike' ? -0.2 : -0.1;
 
   const wheel = (
     index: 0 | 1 | 2 | 3,
@@ -114,7 +121,7 @@ function buildVehicleConfig(carType: CarType): VehicleConfig {
 
   return {
     chassisMass,
-    chassisHalfExtents: { x: 1.1, y: 0.6, z: 2.2 },
+    chassisHalfExtents: carType === 'bike' ? { x: 0.3, y: 0.5, z: 1.2 } : { x: 1.1, y: 0.6, z: 2.2 },
     maxEngineForce,
     maxBrakeForce,
     wheels: [
@@ -272,7 +279,7 @@ function reportFatal(overlay: LoadingOverlay, err: unknown): void {
 }
 
 /** Car type selected from the menu. */
-type CarType = 'jeep' | 'rally' | 'sports' | 'plane';
+type CarType = 'jeep' | 'rally' | 'sports' | 'plane' | 'bike';
 
 /** Entry point: show start menu with car selection, then bootstrap. */
 function main(): void {
@@ -295,6 +302,7 @@ function main(): void {
       <button class="car-btn" data-car="rally" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #2288dd; border-radius: 8px; cursor: pointer; background: #2288dd; color: #fff;">🏎️ Rally</button>
       <button class="car-btn" data-car="sports" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #ffaa00; border-radius: 8px; cursor: pointer; background: #ffaa00; color: #111;">⚡ Sports</button>
       <button class="car-btn" data-car="plane" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #66bbff; border-radius: 8px; cursor: pointer; background: #66bbff; color: #111;">✈️ Plane</button>
+      <button class="car-btn" data-car="bike" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #ff6600; border-radius: 8px; cursor: pointer; background: #ff6600; color: #fff;">🏍️ Bike</button>
     </div>
     <p style="opacity: 0.5; font-size: 0.85rem;">
       W/↑ = throttle &nbsp; S/↓ = brake/reverse &nbsp; A←/D→ = steer &nbsp; Z = camera &nbsp; C = rear view &nbsp; R = reset

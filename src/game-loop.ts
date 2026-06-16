@@ -119,7 +119,7 @@ export interface GameLoopDeps {
   /** Optional hazard pools — water slows, lava damages. */
   hazardPools?: { inWater: boolean; inLava: boolean };
   /** Car type for special ability (Q key). */
-  carType?: 'jeep' | 'rally' | 'sports' | 'plane';
+  carType?: 'jeep' | 'rally' | 'sports' | 'plane' | 'bike';
   /** Optional tree ragdoll manager — uprooted trees tumble realistically. */
   treeRagdolls?: TreeRagdollManager;
   /** Optional fuel pickup manager — collected fuel is added to the run state. */
@@ -189,7 +189,7 @@ export class GameLoop {
   private readonly entities: WorldEntity[];
   private readonly chunks: ChunkManager | null;
   private readonly hazardPoolsRef: { inWater: boolean; inLava: boolean } | null;
-  private readonly carType: 'jeep' | 'rally' | 'sports' | 'plane';
+  private readonly carType: 'jeep' | 'rally' | 'sports' | 'plane' | 'bike';
   private readonly treeRagdolls: TreeRagdollManager | null;
   private readonly flightController: FlightController | null;
   private readonly fuelPickupSource: { lastCollectedFuel: number } | null;
@@ -441,6 +441,11 @@ export class GameLoop {
         this.glideTimer = 3.0;
         playGlideActivate();
         this.specialCooldown = 5.0;
+      } else if (this.carType === 'bike') {
+        // Bike: wheelie — pops the front up for a burst of speed + style.
+        this.physics.applyChassisImpulse({ x: 0, y: 5000, z: 4000 });
+        playJumpBoing();
+        this.specialCooldown = 1.5;
       }
     }
 
