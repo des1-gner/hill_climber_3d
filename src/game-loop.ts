@@ -190,6 +190,11 @@ export class GameLoop {
   private readonly fuelPickupSource: { lastCollectedFuel: number } | null;
   private damage: DamageState;
 
+  /** Cooldown: recently hit tree/object body IDs → time they were last hit. */
+  private readonly hitCooldowns = new Map<number, number>();
+  /** Seconds before the same object can register another hit. */
+  private static readonly HIT_COOLDOWN = 1.5;
+
   private readonly now: NowFn;
   private readonly raf: RafFn | null;
   private readonly cancelRaf: CancelRafFn | null;
@@ -451,11 +456,16 @@ export class GameLoop {
 
       // --- Trees: hit detection, damage, localised crumple, and ragdoll uprooting ---
       const nearTrees = this.chunks.getTreesNear(carPos, 3.0);
+      const nowMs = this.lastNow ?? 0;
       for (const tree of nearTrees) {
         const dx = carPos.x - tree.x;
         const dz = carPos.z - tree.z;
         const dist = Math.hypot(dx, dz);
         if (dist < tree.radius + 1.4) {
+          // Cooldown: skip if this tree was hit recently.
+          const lastHit = this.hitCooldowns.get(tree.bodyId) ?? 0;
+          if ((nowMs - lastHit) / 1000 < GameLoop.HIT_COOLDOWN) continue;
+          this.hitCooldowns.set(tree.bodyId, nowMs);
           const result = applyImpact(this.damage, speed, 'tree');
           this.damage = result.newState;
 
