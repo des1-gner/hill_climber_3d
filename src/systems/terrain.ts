@@ -149,26 +149,29 @@ const _cBlend = new THREE.Color();
 function vertexColor(x: number, z: number, slopeDeg: number, jitter: number, target: THREE.Color): void {
   const t = biomeParam(x, z);
 
-  // Wide blend zones (15% overlap) so transitions are gradual, not abrupt.
-  if (t < 0.15) {
+  // Biome boundaries (matching biomeAt): 0.22, 0.42, 0.58, 0.78
+  // Blend 10% of the range on each side of a boundary.
+  const B = 0.05; // half-width of blend zone
+
+  if (t < 0.22 - B) {
     target.copy(BIOME_COLOR.grassland);
-  } else if (t < 0.30) {
-    const blend = (t - 0.15) / 0.15;
+  } else if (t < 0.22 + B) {
+    const blend = (t - (0.22 - B)) / (2 * B);
     target.copy(BIOME_COLOR.grassland).lerp(_cBlend.copy(BIOME_COLOR.forest), blend);
-  } else if (t < 0.38) {
+  } else if (t < 0.42 - B) {
     target.copy(BIOME_COLOR.forest);
-  } else if (t < 0.52) {
-    const blend = (t - 0.38) / 0.14;
+  } else if (t < 0.42 + B) {
+    const blend = (t - (0.42 - B)) / (2 * B);
     target.copy(BIOME_COLOR.forest).lerp(_cBlend.copy(BIOME_COLOR.desert), blend);
-  } else if (t < 0.58) {
+  } else if (t < 0.58 - B) {
     target.copy(BIOME_COLOR.desert);
-  } else if (t < 0.72) {
-    const blend = (t - 0.58) / 0.14;
+  } else if (t < 0.58 + B) {
+    const blend = (t - (0.58 - B)) / (2 * B);
     target.copy(BIOME_COLOR.desert).lerp(_cBlend.copy(BIOME_COLOR.rocky), blend);
-  } else if (t < 0.78) {
+  } else if (t < 0.78 - B) {
     target.copy(BIOME_COLOR.rocky);
-  } else if (t < 0.92) {
-    const blend = (t - 0.78) / 0.14;
+  } else if (t < 0.78 + B) {
+    const blend = (t - (0.78 - B)) / (2 * B);
     target.copy(BIOME_COLOR.rocky).lerp(_cBlend.copy(BIOME_COLOR.snow), blend);
   } else {
     target.copy(BIOME_COLOR.snow);
