@@ -44,7 +44,7 @@ import {
   updateDistance,
 } from './logic/run-lifecycle';
 import { toHudView } from './logic/hud';
-import { applyImpact, initialDamageState, isDestroyed, type DamageState } from './systems/damage';
+import { applyImpact, type DamageState } from './systems/damage';
 import { updateEngineSound, playCrash, playGlassShatter, playTreeCrack, playPickup, playCheckpoint } from './systems/audio';
 
 import type { RapierPhysicsEngine } from './systems/physics-engine';
@@ -225,7 +225,7 @@ export class GameLoop {
     this.chunks = deps.chunks ?? null;
     this.treeRagdolls = deps.treeRagdolls ?? null;
     this.fuelPickupSource = deps.fuelPickups ?? null;
-    this.damage = initialDamageState();
+    this.damage = { health: 100 };
     this.startPosition = {
       x: deps.startPosition.x,
       y: deps.startPosition.y,
@@ -344,8 +344,8 @@ export class GameLoop {
       // engine zeroes drive force when `fuelEmpty` is true.
       const fuelEmpty = isThrottleSuppressed(this.run.fuel);
 
-      // Handling degrades with damage: health 100 → factor 1.0, health 0 → 0.15.
-      const damageFactor = this.damage.health / 100;
+      // Handling degrades with accumulated damage — no floor, no reset.
+      const damageFactor = Math.max(0, this.damage.health) / 100;
 
       this.physics.applyCommand(command, fuelEmpty, damageFactor);
       this.physics.step(FIXED_DT);
@@ -385,7 +385,6 @@ export class GameLoop {
     if (this.input.consumeResetRequested()) {
       this.physics.reset(this.startPosition);
       this.run = resetRun(this.startPosition);
-      this.damage = initialDamageState();
       const resetState = this.physics.readState();
       this.prev = resetState;
       this.curr = resetState;
@@ -421,7 +420,7 @@ export class GameLoop {
     }
 
     // 4c. Tree and stone collision detection + damage + uprooting.
-    if (this.chunks && !isDestroyed(this.damage)) {
+    if (this.chunks) {
       const carPos = this.curr.chassisPosition;
       const speed = this.curr.horizontalSpeed;
 
