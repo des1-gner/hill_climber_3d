@@ -47,13 +47,16 @@ interface Octave {
   pz: number;
 }
 
+// World seed: randomised each session so the terrain is different every time.
+const WORLD_SEED = Math.random() * 1000;
+
 // Layered sine/cosine hills. Sum of amplitudes ~15 m; the per-axis derivative
 // (sum of a*f) is ~0.45, keeping local slopes well under 45 degrees.
 const HILLS: ReadonlyArray<Octave> = [
-  { a: 9.0, fx: 0.012, fz: 0.011, px: 0.0, pz: 0.0 },
-  { a: 4.0, fx: 0.03, fz: 0.028, px: 1.3, pz: 2.1 },
-  { a: 1.7, fx: 0.07, fz: 0.065, px: 2.7, pz: 0.5 },
-  { a: 0.7, fx: 0.15, fz: 0.14, px: 0.9, pz: 1.7 },
+  { a: 9.0, fx: 0.012, fz: 0.011, px: WORLD_SEED, pz: WORLD_SEED * 0.7 },
+  { a: 4.0, fx: 0.03, fz: 0.028, px: WORLD_SEED + 1.3, pz: WORLD_SEED + 2.1 },
+  { a: 1.7, fx: 0.07, fz: 0.065, px: WORLD_SEED + 2.7, pz: WORLD_SEED + 0.5 },
+  { a: 0.7, fx: 0.15, fz: 0.14, px: WORLD_SEED + 0.9, pz: WORLD_SEED + 1.7 },
 ];
 
 function smoothstep01(t: number): number {
@@ -65,8 +68,8 @@ function smoothstep01(t: number): number {
 /** Low-frequency biome field in roughly [-1.5, 1.5]. */
 function biomeRaw(x: number, z: number): number {
   return (
-    Math.sin(x * 0.0042 + 0.7) * Math.cos(z * 0.0039 + 1.9) +
-    0.5 * Math.sin(x * 0.0091 + 2.3) * Math.cos(z * 0.008 + 0.5)
+    Math.sin(x * 0.0042 + WORLD_SEED * 0.3) * Math.cos(z * 0.0039 + WORLD_SEED * 0.5) +
+    0.5 * Math.sin(x * 0.0091 + WORLD_SEED * 0.8) * Math.cos(z * 0.008 + WORLD_SEED * 0.2)
   );
 }
 

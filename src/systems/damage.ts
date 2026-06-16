@@ -36,7 +36,7 @@ const UPROOT_SPEED_THRESHOLD = 11;
 const UPROOT_EXTRA_DAMAGE = 8;
 
 /** Linear damage scale: damage per (m/s above threshold) at multiplier 1.0. */
-const DAMAGE_PER_MPS = 2.2;
+const DAMAGE_PER_MPS = 1.1;
 
 export interface DamageState {
   health: number; // 0..100

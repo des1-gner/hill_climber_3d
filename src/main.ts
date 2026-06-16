@@ -12,6 +12,7 @@
 //   5. Start the game loop and remove the overlay.
 //   6. Any fatal error is surfaced via the overlay with a retry affordance.
 
+import * as THREE from 'three';
 import type { LoadResult, Vec3, VehicleConfig, VehicleMeshes, WheelConfig } from './types';
 
 import { GltfAssetLoader } from './systems/asset-loader';
@@ -57,10 +58,31 @@ function resolveSpawn(): Vec3 {
  * climb the mountain's sustained grades; `frictionSlip` stays within the
  * required [0.05, 1.50] bound (Req 6.5).
  */
-function buildVehicleConfig(): VehicleConfig {
-  const halfWidth = 0.95; // matches the model's wheel track
-  const halfLength = 1.5; // matches the model's wheelbase
-  const mountY = -0.1; // wheel mount height relative to chassis centre
+function buildVehicleConfig(carType: CarType): VehicleConfig {
+  // Base values (jeep).
+  let chassisMass = 1250;
+  let maxEngineForce = 9000;
+  let maxBrakeForce = 4000;
+  let frictionSlip = 1.3;
+  let suspensionStiffness = 26;
+
+  if (carType === 'rally') {
+    chassisMass = 1000;
+    maxEngineForce = 11000;
+    maxBrakeForce = 5000;
+    frictionSlip = 1.4;
+    suspensionStiffness = 30;
+  } else if (carType === 'sports') {
+    chassisMass = 900;
+    maxEngineForce = 14000;
+    maxBrakeForce = 6000;
+    frictionSlip = 1.1;
+    suspensionStiffness = 34;
+  }
+
+  const halfWidth = 0.95;
+  const halfLength = 1.5;
+  const mountY = -0.1;
 
   const wheel = (
     index: 0 | 1 | 2 | 3,
@@ -71,20 +93,20 @@ function buildVehicleConfig(): VehicleConfig {
     index,
     connectionPointLocal: { x, y: mountY, z },
     suspensionRestLength: 0.55,
-    suspensionStiffness: 26,
+    suspensionStiffness,
     suspensionDamping: 3.2,
     maxSuspensionTravel: 0.4, // generous travel for visible off-road suspension
     radius: 0.5, // chunky off-road tyres
     isSteered,
-    isDriven: true, // AWD
-    frictionSlip: 1.3,
+    isDriven: true,
+    frictionSlip,
   });
 
   return {
-    chassisMass: 1250,
-    chassisHalfExtents: { x: 1.1, y: 0.6, z: 2.2 }, // wider + taller to cover wheel arches and full body
-    maxEngineForce: 9000, // enough torque to climb sustained ~25 deg grades
-    maxBrakeForce: 4000,
+    chassisMass,
+    chassisHalfExtents: { x: 1.1, y: 0.6, z: 2.2 },
+    maxEngineForce,
+    maxBrakeForce,
     wheels: [
       wheel(0, halfWidth, halfLength, true), //  FL
       wheel(1, -halfWidth, halfLength, true), //  FR
@@ -119,7 +141,7 @@ function isHtmlElement(el: HTMLElement): el is HTMLElement {
  * Run the full bootstrap sequence. Safe to call again (e.g. from the loading
  * overlay's retry button) after a failure.
  */
-async function bootstrap(overlay: LoadingOverlay): Promise<void> {
+async function bootstrap(overlay: LoadingOverlay, carType: CarType = 'jeep'): Promise<void> {
   const canvas = requireElement('game-canvas', isCanvas);
   const hudMount = requireElement('hud-overlay', isHtmlElement);
 
@@ -144,8 +166,20 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
   }
   const vehicleMeshes = vehicleResult.value;
 
+  // Tint the car paint based on the selected car type.
+  const CAR_TINTS: Record<CarType, number> = { jeep: 0xcc3322, rally: 0x2288dd, sports: 0xffaa00 };
+  const tint = new THREE.Color(CAR_TINTS[carType]);
+  vehicleMeshes.chassis.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    if (mat && mat.color && mat.color.getHex() === 0xcc3322) {
+      mat.color.copy(tint);
+    }
+  });
+
   // 3. Initialise physics (no single terrain — chunks add colliders below).
-  const config = buildVehicleConfig();
+  const config = buildVehicleConfig(carType);
   const physics = new RapierPhysicsEngine(config);
   try {
     await physics.init(config.wheels);
@@ -238,12 +272,14 @@ function reportFatal(overlay: LoadingOverlay, err: unknown): void {
   });
 }
 
-/** Entry point: show start menu, then build the overlay and kick off bootstrap. */
+/** Car type selected from the menu. */
+type CarType = 'jeep' | 'rally' | 'sports';
+
+/** Entry point: show start menu with car selection, then bootstrap. */
 function main(): void {
   const app = document.getElementById('app');
   const mount = app instanceof HTMLElement ? app : document.body;
 
-  // Start menu overlay.
   const menu = document.createElement('div');
   menu.style.cssText = `
     position: fixed; inset: 0; z-index: 9999;
@@ -253,28 +289,27 @@ function main(): void {
   `;
   menu.innerHTML = `
     <h1 style="font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">🏔️ Hill Climber 3D</h1>
-    <p style="opacity: 0.7; margin-bottom: 2rem; font-size: 1.1rem;">Drive across infinite biomes. Dodge wildlife. Reach checkpoints.</p>
-    <button id="start-btn" style="
-      padding: 16px 48px; font-size: 1.3rem; font-weight: 700;
-      border: none; border-radius: 8px; cursor: pointer;
-      background: #cc3322; color: #fff;
-      box-shadow: 0 6px 20px rgba(204,51,34,0.4);
-      transition: transform 0.1s;
-    ">Start Game</button>
-    <p style="opacity: 0.5; margin-top: 2rem; font-size: 0.85rem;">
+    <p style="opacity: 0.7; margin-bottom: 1.5rem; font-size: 1.1rem;">Drive across infinite biomes. Dodge wildlife. Reach checkpoints.</p>
+    <p style="opacity: 0.8; margin-bottom: 0.8rem; font-size: 1rem;">Choose your car:</p>
+    <div style="display: flex; gap: 16px; margin-bottom: 2rem;">
+      <button class="car-btn" data-car="jeep" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #cc3322; border-radius: 8px; cursor: pointer; background: #cc3322; color: #fff;">🚙 Jeep</button>
+      <button class="car-btn" data-car="rally" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #2288dd; border-radius: 8px; cursor: pointer; background: #2288dd; color: #fff;">🏎️ Rally</button>
+      <button class="car-btn" data-car="sports" style="padding: 12px 24px; font-size: 1rem; font-weight: 700; border: 2px solid #ffaa00; border-radius: 8px; cursor: pointer; background: #ffaa00; color: #111;">⚡ Sports</button>
+    </div>
+    <p style="opacity: 0.5; font-size: 0.85rem;">
       W/↑ = throttle &nbsp; S/↓ = brake/reverse &nbsp; A←/D→ = steer &nbsp; Z = camera &nbsp; C = rear view &nbsp; R = reset
     </p>
   `;
   mount.appendChild(menu);
 
-  const btn = document.getElementById('start-btn');
-  if (btn) {
+  menu.querySelectorAll('.car-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
+      const carType = (btn as HTMLElement).dataset.car as CarType;
       menu.remove();
       const overlay = new LoadingOverlay(mount);
-      bootstrap(overlay).catch((err) => reportFatal(overlay, err));
+      bootstrap(overlay, carType).catch((err) => reportFatal(overlay, err));
     });
-  }
+  });
 }
 
 main();
