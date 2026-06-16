@@ -34,7 +34,7 @@ const CHASSIS_MIN_TRIS = 20_000;
 const WHEEL_MIN_TRIS = 5_000;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_PATH = resolve(__dirname, '..', 'public', 'assets', 'vehicle.glb');
+const OUTPUT_PATH = resolve(__dirname, "..", "public", "assets", "vehicle_rally.glb");
 
 // GLTFExporter's binary path uses Blob + FileReader; Node has Blob but not
 // FileReader, so provide a minimal shim backed by Blob.arrayBuffer().
@@ -59,7 +59,7 @@ if (typeof globalThis.FileReader === 'undefined') {
 // ---------------------------------------------------------------------------
 
 const M = {
-  paint: new THREE.MeshStandardMaterial({ color: 0xcc3322, metalness: 0.5, roughness: 0.4 }),
+  paint: new THREE.MeshStandardMaterial({ color: 0x2288dd, metalness: 0.5, roughness: 0.4 }),
   trim: new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.3, roughness: 0.7 }),
   plastic: new THREE.MeshStandardMaterial({ color: 0x15171b, metalness: 0.1, roughness: 0.85 }),
   chrome: new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 1.0, roughness: 0.22 }),
@@ -120,11 +120,11 @@ function buildChassis() {
   chassis.name = CHASSIS_NODE;
 
   // Main hull — rounded by using very high segments so env map smooths it.
-  addPart(chassis, new THREE.BoxGeometry(2.0, 0.85, 4.2, 48, 24, 72), M.paint, [0, 0.1, 0]);
+  addPart(chassis, new THREE.BoxGeometry(2.2, 0.7, 4.4, 48, 24, 72), M.paint, [0, 0.1, 0]);
   // Lower rocker / skirt (rounded edges).
   addPart(chassis, new THREE.BoxGeometry(2.06, 0.3, 4.0, 20, 8, 48), M.trim, [0, -0.4, 0]);
   // Cabin / greenhouse — using a capsule-like shape (rounded box via high segments).
-  addPart(chassis, new THREE.BoxGeometry(1.78, 0.72, 2.1, 36, 18, 38), M.paint, [0, 0.92, -0.25]);
+  addPart(chassis, new THREE.BoxGeometry(1.9, 0.6, 2.2, 36, 18, 38), M.paint, [0, 0.92, -0.25]);
   // Flat roof cap.
   addPart(chassis, new THREE.BoxGeometry(1.82, 0.1, 2.16, 24, 4, 26), M.trim, [0, 1.3, -0.25]);
   // Hood (slightly rounded).

@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "assets:vehicle": "node scripts/generate-vehicle.mjs",
+    "assets:rally": "node scripts/generate-rally.mjs",
+    "assets:sports": "node scripts/generate-sports.mjs",
     "coverage": "vitest run --coverage",
     "assets:terrain": "node scripts/generate-terrain.mjs",
     "assets:textures": "node scripts/generate-textures.mjs"

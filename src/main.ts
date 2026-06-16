@@ -12,7 +12,6 @@
 //   5. Start the game loop and remove the overlay.
 //   6. Any fatal error is surfaced via the overlay with a retry affordance.
 
-import * as THREE from 'three';
 import type { LoadResult, Vec3, VehicleConfig, VehicleMeshes, WheelConfig } from './types';
 
 import { GltfAssetLoader } from './systems/asset-loader';
@@ -32,8 +31,12 @@ import { TreeRagdollManager } from './systems/tree-ragdoll';
 import { resumeAudio } from './systems/audio';
 import { GameLoop } from './game-loop';
 
-/** URL of the Draco-compressed vehicle GLB served from `public/assets/`. */
-const VEHICLE_URL = '/assets/vehicle.glb';
+/** URL of the vehicle GLB per car type. */
+const VEHICLE_URLS: Record<CarType, string> = {
+  jeep: '/assets/vehicle.glb',
+  rally: '/assets/vehicle_rally.glb',
+  sports: '/assets/vehicle_sports.glb',
+};
 
 /** Horizontal (x, z) anchor the vehicle spawns at. */
 const SPAWN_XZ = { x: 0, z: 0 };
@@ -150,7 +153,7 @@ async function bootstrap(overlay: LoadingOverlay, carType: CarType = 'jeep'): Pr
   const assetLoader = new GltfAssetLoader();
   let vehicleResult: LoadResult<VehicleMeshes>;
   try {
-    vehicleResult = await assetLoader.loadVehicle(VEHICLE_URL, (p) =>
+    vehicleResult = await assetLoader.loadVehicle(VEHICLE_URLS[carType], (p) =>
       overlay.showProgress(p.percent),
     );
   } finally {
@@ -165,18 +168,6 @@ async function bootstrap(overlay: LoadingOverlay, carType: CarType = 'jeep'): Pr
     return;
   }
   const vehicleMeshes = vehicleResult.value;
-
-  // Tint the car paint based on the selected car type.
-  const CAR_TINTS: Record<CarType, number> = { jeep: 0xcc3322, rally: 0x2288dd, sports: 0xffaa00 };
-  const tint = new THREE.Color(CAR_TINTS[carType]);
-  vehicleMeshes.chassis.traverse((obj) => {
-    const mesh = obj as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const mat = mesh.material as THREE.MeshStandardMaterial;
-    if (mat && mat.color && mat.color.getHex() === 0xcc3322) {
-      mat.color.copy(tint);
-    }
-  });
 
   // 3. Initialise physics (no single terrain — chunks add colliders below).
   const config = buildVehicleConfig(carType);
