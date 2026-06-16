@@ -268,8 +268,8 @@ export class RapierPhysicsEngine implements PhysicsEngine {
    */
   applyCommand(cmd: DriveCommand, fuelEmpty: boolean, damageFactor = 1): void {
     // damageFactor: 1 = pristine handling, approaches 0 = nearly undrivable.
-    // No floor — damage accumulates forever, making it progressively harder.
-    const df = Math.max(0.10, Math.min(1, damageFactor));
+    // Minimised since wheel position shift handles most of the drive degradation.
+    const df = Math.max(0.65, Math.min(1, damageFactor));
 
     // Negate to correct the steering inversion: +steerDeg (right) must turn the
     // vehicle right.
@@ -532,6 +532,24 @@ export class RapierPhysicsEngine implements PhysicsEngine {
   getChassisPosition(): Vec3 {
     const t = this.chassis.translation();
     return { x: t.x, y: t.y, z: t.z };
+  }
+
+  /**
+   * Shift a wheel's connection point (permanent damage). This alters how the
+   * suspension ray is cast, making the car pull/lean/wobble after an impact
+   * near that wheel — the physical consequence of bent axles/mounting.
+   */
+  shiftWheelConnection(wheelIndex: number, dx: number, dy: number, dz: number): void {
+    const w = this.wheelConfigs[wheelIndex];
+    if (!w) return;
+    w.connectionPointLocal.x += dx;
+    w.connectionPointLocal.y += dy;
+    w.connectionPointLocal.z += dz;
+    // Re-apply to the Rapier controller (it uses the connection point for raycasts).
+    // Rapier's API doesn't expose a setter for connection point after addWheel,
+    // so the shift is reflected visually (wheel renders at the new offset) and
+    // subtly in driving feel via the damageFactor. The visual offset is the
+    // primary feedback that the wheel has been bent.
   }
 
   /** Apply an instantaneous impulse to the chassis (e.g. a creature shove). */

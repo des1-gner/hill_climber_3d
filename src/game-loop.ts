@@ -65,8 +65,8 @@ import type { TreeRagdollManager } from './systems/tree-ragdoll';
  */
 export interface HudLike {
   update(view: HudView): void;
-  /** Optional checkpoint readout: reached count + distance to the next one. */
   setObjective?(reachedCount: number, distanceMeters: number): void;
+  setFps?(fps: number): void;
 }
 
 /**
@@ -469,6 +469,21 @@ export class GameLoop {
             if (crumpleResult.glassShattered) {
               playGlassShatter();
             }
+
+            // Shift nearest wheel connection points (bent axle effect).
+            const impactDir = { x: -dx * inv, y: 0, z: -dz * inv };
+            for (let wi = 0; wi < 4; wi++) {
+              const wc = this.physics.readState().wheels[wi];
+              if (!wc) continue;
+              // Check if this wheel's mount is on the impact side.
+              const cfg = (this.physics as unknown as { wheelConfigs: Array<{ connectionPointLocal: Vec3 }> }).wheelConfigs[wi];
+              if (!cfg) continue;
+              const wDot = cfg.connectionPointLocal.x * impactDir.x + cfg.connectionPointLocal.z * impactDir.z;
+              if (wDot > 0.3) {
+                const shift = strength * 0.03;
+                this.physics.shiftWheelConnection(wi, impactDir.x * shift, 0, impactDir.z * shift);
+              }
+            }
           }
 
           if (result.uprooted) {
@@ -511,7 +526,9 @@ export class GameLoop {
     this.treeRagdolls?.update(elapsedSeconds);
 
     // 6. LOD controller fed by the renderer's measured frame rate (Req 10.3-10.6).
-    this.lod.update(this.renderer.measureFps(now), elapsedSeconds);
+    const fps = this.renderer.measureFps(now);
+    this.lod.update(fps, elapsedSeconds);
+    this.hud.setFps?.(fps);
   }
 
   /**

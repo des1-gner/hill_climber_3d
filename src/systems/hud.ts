@@ -113,6 +113,17 @@ const HUD_CSS = `
 .hud-summary-distance { font-size: 15px; opacity: 0.85; font-variant-numeric: tabular-nums; }
 .hud-hidden { display: none; }
 
+.hud-fps {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #aaffaa;
+  font: 500 12px/1 monospace;
+}
+
 .hud-objective {
   position: absolute;
   top: 16px;
@@ -170,6 +181,7 @@ export class Hud {
   private objectiveCount: HTMLElement | null = null;
   private objectiveDistance: HTMLElement | null = null;
   private toast: HTMLElement | null = null;
+  private fpsEl: HTMLElement | null = null;
 
   /** Last reached-checkpoint count seen, to detect increments for the toast. */
   private lastReachedCount = 0;
@@ -283,6 +295,12 @@ export class Hud {
     this.mountEl.appendChild(objectivePanel);
     this.mountEl.appendChild(toast);
 
+    // FPS counter.
+    const fpsEl = doc.createElement('div');
+    fpsEl.className = 'hud-fps';
+    fpsEl.textContent = '0 FPS';
+    this.mountEl.appendChild(fpsEl);
+
     this.root = root;
     this.fuelFill = fuelFill;
     this.fuelValue = fuelValue;
@@ -295,6 +313,7 @@ export class Hud {
     this.objectiveCount = objectiveCount;
     this.objectiveDistance = objectiveDistance;
     this.toast = toast;
+    this.fpsEl = fpsEl;
   }
 
   /**
@@ -352,6 +371,12 @@ export class Hud {
       // Fallback for minimal DOM shims without classList.
       el.style.display = hidden ? 'none' : '';
     }
+  }
+
+  /** Update the FPS counter display. */
+  setFps(fps: number): void {
+    if (!this.fpsEl) return;
+    this.fpsEl.textContent = `${Math.round(fps)} FPS`;
   }
 
   /**

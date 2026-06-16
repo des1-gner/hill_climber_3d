@@ -224,20 +224,20 @@ function addNumberPlate(parent, pos, yaw) {
   const plate = new THREE.Group();
   plate.position.set(pos[0], pos[1], pos[2]);
   plate.rotation.y = yaw;
-  // Yellow panel.
-  addPart(plate, new THREE.BoxGeometry(0.72, 0.22, 0.03, 6, 3, 1), M.plate, [0, 0, 0]);
+  // Yellow panel (larger).
+  addPart(plate, new THREE.BoxGeometry(0.82, 0.26, 0.03, 6, 3, 1), M.plate, [0, 0, 0]);
   // Frame border (dark).
-  addPart(plate, new THREE.BoxGeometry(0.76, 0.26, 0.02, 4, 3, 1), M.trim, [0, 0, -0.005]);
+  addPart(plate, new THREE.BoxGeometry(0.86, 0.30, 0.02, 4, 3, 1), M.trim, [0, 0, -0.005]);
 
-  // Block-letter text "H1LL3D" — each character is a small raised dark box.
+  // Block-letter text "H1LL 3D" — larger raised dark blocks.
   const text = 'H1LL3D';
-  const charW = 0.07;
-  const charH = 0.13;
-  const spacing = 0.095;
+  const charW = 0.08;
+  const charH = 0.16;
+  const spacing = 0.11;
   const startX = -(text.length - 1) * spacing / 2;
   for (let i = 0; i < text.length; i++) {
     const cx = startX + i * spacing;
-    addPart(plate, new THREE.BoxGeometry(charW, charH, 0.015, 1, 1, 1), M.plateText, [cx, 0, 0.025]);
+    addPart(plate, new THREE.BoxGeometry(charW, charH, 0.02, 1, 1, 1), M.plateText, [cx, 0, 0.02]);
   }
   parent.add(plate);
 }

@@ -413,13 +413,28 @@ export class ChunkManager {
       stoneIds.push(this.physics.addStaticBoulder({ x: wx, y: wy, z: wz }, r * 0.85));
     }
 
-    // Flowers: small colourful accents scattered on gentle ground.
-    this.scatter(group, instanced, FLOWER_GEO, FLOWER_MATS[Math.floor(rng() * FLOWER_MATS.length)] ?? FLOWER_MATS[0]!, d.flowers, centerX, centerZ, rand, rng, {
-      yawOnly: true,
-      minScale: 0.6,
-      maxScale: 1.8,
-      maxSlope: 20,
-    });
+    // Flowers: spawn in patches (clustered around random centres).
+    const flowerCount = d.flowers;
+    if (flowerCount > 0) {
+      const patchCentres = Math.ceil(flowerCount / 8);
+      for (let p = 0; p < patchCentres; p++) {
+        const pcx = centerX + rand();
+        const pcz = centerZ + rand();
+        if (terrainSlopeDegrees(pcx, pcz) > 20) continue;
+        const flowersInPatch = 5 + Math.floor(rng() * 8);
+        for (let f = 0; f < flowersInPatch; f++) {
+          const fx = pcx + (rng() - 0.5) * 5;
+          const fz = pcz + (rng() - 0.5) * 5;
+          const mat = FLOWER_MATS[Math.floor(rng() * FLOWER_MATS.length)] ?? FLOWER_MATS[0]!;
+          this.scatter(group, instanced, FLOWER_GEO, mat, 1, fx, fz, () => 0, rng, {
+            yawOnly: true,
+            minScale: 0.6,
+            maxScale: 1.8,
+            maxSlope: 90,
+          });
+        }
+      }
+    }
 
     // Fuel pickup: one per chunk (50% chance), placed on gentle ground.
     if (this.fuelPickups && rng() > 0.5) {

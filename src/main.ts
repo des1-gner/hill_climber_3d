@@ -238,13 +238,43 @@ function reportFatal(overlay: LoadingOverlay, err: unknown): void {
   });
 }
 
-/** Entry point: build the overlay and kick off the bootstrap sequence. */
+/** Entry point: show start menu, then build the overlay and kick off bootstrap. */
 function main(): void {
   const app = document.getElementById('app');
   const mount = app instanceof HTMLElement ? app : document.body;
-  const overlay = new LoadingOverlay(mount);
 
-  bootstrap(overlay).catch((err) => reportFatal(overlay, err));
+  // Start menu overlay.
+  const menu = document.createElement('div');
+  menu.style.cssText = `
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; font-family: system-ui, sans-serif;
+  `;
+  menu.innerHTML = `
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 0 4px 12px rgba(0,0,0,0.5);">🏔️ Hill Climber 3D</h1>
+    <p style="opacity: 0.7; margin-bottom: 2rem; font-size: 1.1rem;">Drive across infinite biomes. Dodge wildlife. Reach checkpoints.</p>
+    <button id="start-btn" style="
+      padding: 16px 48px; font-size: 1.3rem; font-weight: 700;
+      border: none; border-radius: 8px; cursor: pointer;
+      background: #cc3322; color: #fff;
+      box-shadow: 0 6px 20px rgba(204,51,34,0.4);
+      transition: transform 0.1s;
+    ">Start Game</button>
+    <p style="opacity: 0.5; margin-top: 2rem; font-size: 0.85rem;">
+      W/↑ = throttle &nbsp; S/↓ = brake/reverse &nbsp; A←/D→ = steer &nbsp; Z = camera &nbsp; C = rear view &nbsp; R = reset
+    </p>
+  `;
+  mount.appendChild(menu);
+
+  const btn = document.getElementById('start-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      menu.remove();
+      const overlay = new LoadingOverlay(mount);
+      bootstrap(overlay).catch((err) => reportFatal(overlay, err));
+    });
+  }
 }
 
 main();
