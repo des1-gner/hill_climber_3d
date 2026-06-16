@@ -45,8 +45,8 @@ function endReasonLabel(reason: EndReason | null): string {
 function fuelBarPercent(fuelInt: number): number {
   if (!Number.isFinite(fuelInt)) return 0;
   if (fuelInt < 0) return 0;
-  if (fuelInt > 200) return 100;
-  return (fuelInt / 200) * 100;
+  if (fuelInt > 400) return 100;
+  return (fuelInt / 400) * 100;
 }
 
 const STYLE_ELEMENT_ID = 'hud-style';

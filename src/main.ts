@@ -26,7 +26,6 @@ import { Hud } from './systems/hud';
 import { LodController } from './systems/lod-controller';
 import { ObjectiveManager } from './systems/objective';
 import { AnimalManager } from './systems/animals';
-import { LandslideManager } from './systems/landslide';
 import { TreeRagdollManager } from './systems/tree-ragdoll';
 import { resumeAudio } from './systems/audio';
 import { GameLoop } from './game-loop';
@@ -184,9 +183,8 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
     radius: 11,
   });
 
-  // Dynamic world: biome animals (that shove the car) and periodic landslides.
+  // Dynamic world: biome animals (that shove the car).
   const animals = new AnimalManager(renderer.scene, physics, { perBiome: 4 });
-  const landslide = new LandslideManager(physics, renderer, terrainElevation);
   const treeRagdolls = new TreeRagdollManager(renderer.scene);
 
   // 5. Game loop — start, then remove the overlay now the scene is ready.
@@ -199,7 +197,7 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
     startPosition,
     objective,
     surfaceFrictionAt,
-    entities: [chunks, animals, landslide, fuelPickups],
+    entities: [chunks, animals, fuelPickups],
     chunks,
     treeRagdolls,
     fuelPickups,

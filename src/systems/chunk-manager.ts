@@ -72,12 +72,12 @@ const GRASS_MAT = new THREE.MeshStandardMaterial({ color: 0x5b8f3a, roughness: 1
 
 // --- Textured materials for vegetation ---
 const LEAF_MAT = new THREE.MeshStandardMaterial({
-  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.4,
-  side: THREE.DoubleSide, roughness: 0.8, color: 0x55aa44,
+  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.3,
+  side: THREE.DoubleSide, roughness: 0.7, color: 0x44aa33, opacity: 0.92,
 });
 const SNOW_LEAF_MAT = new THREE.MeshStandardMaterial({
-  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.4,
-  side: THREE.DoubleSide, roughness: 0.8, color: 0xd8e8f0,
+  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.3,
+  side: THREE.DoubleSide, roughness: 0.7, color: 0xd0e4ee, opacity: 0.92,
 });
 const CACTUS_MAT_TEX = new THREE.MeshStandardMaterial({ map: cactusTex, roughness: 0.8 });
 
@@ -94,46 +94,44 @@ const OAK_TRUNK_GEO = (() => {
 })();
 const TRUNK_MAT = new THREE.MeshStandardMaterial({ color: 0x5c3e20, roughness: 0.9, metalness: 0 });
 
-// Pine canopy: dense conical shell of leaf planes. 5× density so there are no
-// visible gaps — the canopy reads as a solid mass of foliage.
+// Pine canopy: very dense conical shell — thick enough to be fully opaque.
 const PINE_CANOPY_GEO = (() => {
   const leaves: THREE.BufferGeometry[] = [];
-  for (let tier = 0; tier < 8; tier++) {
-    const y = 2.2 + tier * 0.7;
-    const r = 2.6 - tier * 0.28;
-    const count = 24 - tier * 2;
+  for (let tier = 0; tier < 12; tier++) {
+    const y = 2.2 + tier * 0.5;
+    const r = 2.8 - tier * 0.2;
+    const count = 36 - tier * 2;
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + tier * 0.37;
-      const jitter = 0.6 + Math.sin(a * 5 + tier * 2.1) * 0.4;
+      const jitter = 0.55 + Math.sin(a * 5 + tier * 2.1) * 0.45;
       const lx = Math.cos(a) * r * jitter;
       const lz = Math.sin(a) * r * jitter;
-      const leaf = new THREE.PlaneGeometry(1.3, 1.3);
-      leaf.rotateY(a + (i % 3) * 0.4);
-      leaf.rotateX(-0.25 + tier * 0.06);
-      leaf.rotateZ((Math.sin(a * 7) - 0.5) * 0.3);
-      leaf.translate(lx, y + (Math.random() - 0.5) * 0.3, lz);
+      const leaf = new THREE.PlaneGeometry(1.4, 1.4);
+      leaf.rotateY(a + (i % 3) * 0.3);
+      leaf.rotateX(-0.2 + tier * 0.04);
+      leaf.rotateZ((Math.sin(a * 7) - 0.5) * 0.25);
+      leaf.translate(lx, y + (Math.sin(i * 1.3) * 0.15), lz);
       leaves.push(leaf);
     }
   }
   return BufferGeometryUtils.mergeGeometries(leaves, false);
 })();
 
-// Oak canopy: very dense spherical ball — 400 overlapping leaf planes so there
-// are no gaps and you can barely see the trunk through the foliage.
+// Oak canopy: extremely dense spherical volume — completely opaque from outside.
 const OAK_CANOPY_GEO = (() => {
   const leaves: THREE.BufferGeometry[] = [];
   const centreY = 4.6;
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < 800; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(Math.random() * 2 - 1);
-    const r = 0.4 + Math.random() * 2.2;
+    const r = 0.3 + Math.random() * 2.4;
     const lx = r * Math.sin(phi) * Math.cos(theta);
     const ly = centreY + r * Math.cos(phi) * 0.7;
     const lz = r * Math.sin(phi) * Math.sin(theta);
-    const size = 0.7 + Math.random() * 0.5;
+    const size = 0.6 + Math.random() * 0.5;
     const leaf = new THREE.PlaneGeometry(size, size);
     leaf.rotateY(Math.random() * Math.PI);
-    leaf.rotateX(Math.random() * Math.PI * 0.7);
+    leaf.rotateX(Math.random() * Math.PI * 0.6);
     leaf.translate(lx, ly, lz);
     leaves.push(leaf);
   }
@@ -159,9 +157,9 @@ const CACTUS_GEO = (() => {
 
 // Loose decorative rock + collidable stone share an icosahedron.
 const ROCK_GEO = new THREE.IcosahedronGeometry(0.5, 1);
-const ROCK_MAT = new THREE.MeshStandardMaterial({ color: 0x6d6f73, roughness: 0.9, metalness: 0.05 });
+const ROCK_MAT = new THREE.MeshStandardMaterial({ color: 0x6d6f73, roughness: 0.9, metalness: 0.05, flatShading: true });
 const STONE_GEO = new THREE.IcosahedronGeometry(1, 1);
-const STONE_MAT = new THREE.MeshStandardMaterial({ color: 0x76787c, roughness: 0.85, metalness: 0.08 });
+const STONE_MAT = new THREE.MeshStandardMaterial({ color: 0x76787c, roughness: 0.85, metalness: 0.08, flatShading: true });
 
 /** Seeded mulberry32 PRNG. */
 function makeRng(seed: number): () => number {

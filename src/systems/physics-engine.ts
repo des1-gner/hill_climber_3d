@@ -125,17 +125,21 @@ export class RapierPhysicsEngine implements PhysicsEngine {
     // Chassis: one dynamic rigid body with a cuboid collider sized from the
     // configured half extents. The collider carries the chassis mass.
     const spawn = RapierPhysicsEngine.DEFAULT_SPAWN;
-    const chassisDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(
-      spawn.x,
-      spawn.y,
-      spawn.z,
-    );
+    const chassisDesc = RAPIER.RigidBodyDesc.dynamic()
+      .setTranslation(spawn.x, spawn.y, spawn.z)
+      // High angular damping makes it very resistant to rolling/flipping.
+      .setAngularDamping(3.0);
+    // Shift centre of mass downward so the car is bottom-heavy and self-rights.
+    chassisDesc.centerOfMass = { x: 0, y: -0.4, z: 0 };
     this.chassis = this.world.createRigidBody(chassisDesc);
 
     const he = this.config.chassisHalfExtents;
-    const chassisCollider = RAPIER.ColliderDesc.cuboid(he.x, he.y, he.z).setMass(
-      this.config.chassisMass,
-    );
+    // The cuboid collider covers the entire car body (top, sides, bottom) so
+    // terrain contact happens on all faces, not just the wheels.
+    const chassisCollider = RAPIER.ColliderDesc.cuboid(he.x, he.y, he.z)
+      .setMass(this.config.chassisMass)
+      .setFriction(0.4)
+      .setRestitution(0.1);
     this.world.createCollider(chassisCollider, this.chassis);
 
     // Raycast-vehicle controller driven by the chassis body.
