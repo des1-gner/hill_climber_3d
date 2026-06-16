@@ -462,23 +462,49 @@ export class ChunkManager {
       }
     }
 
-    // Ramp: angled platform (30% chance per chunk on gentle ground).
+    // Ramp: proper skateboard-style half-pipe ramp (filled in, goes high).
     if (rng() > 0.7) {
       const rx = centerX + rand();
       const rz = centerZ + rand();
       if (terrainSlopeDegrees(rx, rz) < 15) {
         const ry = terrainElevation(rx, rz);
-        const rampGeo = new THREE.BoxGeometry(3.5, 0.15, 5, 6, 2, 8);
-        const rampMat = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.7, metalness: 0.3 });
-        const ramp = new THREE.Mesh(rampGeo, rampMat);
-        ramp.position.set(rx, ry + 0.6, rz);
-        ramp.rotation.x = -0.3; // angled upward
-        ramp.rotation.y = rng() * Math.PI * 2;
-        ramp.castShadow = true;
-        ramp.receiveShadow = true;
-        group.add(ramp);
-        // Physics collider for the ramp.
-        stoneIds.push(this.physics.addStaticBoulder({ x: rx, y: ry + 0.6, z: rz }, 2.0, 0.5));
+        const rampYaw = rng() * Math.PI * 2;
+        const rampGroup = new THREE.Group();
+        rampGroup.position.set(rx, ry, rz);
+        rampGroup.rotation.y = rampYaw;
+
+        // Ramp surface (angled up at 35 degrees, longer/taller).
+        const surface = new THREE.Mesh(
+          new THREE.BoxGeometry(4, 0.15, 8, 8, 2, 12),
+          new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.6, metalness: 0.3 }),
+        );
+        surface.position.set(0, 2.0, 0);
+        surface.rotation.x = -0.55; // ~32 degrees
+        surface.castShadow = true;
+        rampGroup.add(surface);
+
+        // Fill / support structure beneath the ramp surface.
+        const fill = new THREE.Mesh(
+          new THREE.BoxGeometry(4, 3.5, 4, 6, 6, 6),
+          new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 }),
+        );
+        fill.position.set(0, 1.5, -2.2);
+        fill.castShadow = true;
+        rampGroup.add(fill);
+
+        // Side walls.
+        for (const sx of [-2.05, 2.05]) {
+          const wall = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 4, 8, 2, 6, 10),
+            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 }),
+          );
+          wall.position.set(sx, 2.0, 0);
+          rampGroup.add(wall);
+        }
+
+        group.add(rampGroup);
+        // Physics collider (large enough to cover the ramp).
+        stoneIds.push(this.physics.addStaticBoulder({ x: rx, y: ry + 2, z: rz }, 3.5, 0.3));
       }
     }
 

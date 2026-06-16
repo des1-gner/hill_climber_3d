@@ -117,6 +117,8 @@ export interface GameLoopDeps {
   chunks?: ChunkManager;
   /** Optional hazard pools — water slows, lava damages. */
   hazardPools?: { inWater: boolean; inLava: boolean };
+  /** Car type for special ability (Q key). */
+  carType?: 'jeep' | 'rally' | 'sports';
   /** Optional tree ragdoll manager — uprooted trees tumble realistically. */
   treeRagdolls?: TreeRagdollManager;
   /** Optional fuel pickup manager — collected fuel is added to the run state. */
@@ -186,6 +188,7 @@ export class GameLoop {
   private readonly entities: WorldEntity[];
   private readonly chunks: ChunkManager | null;
   private readonly hazardPoolsRef: { inWater: boolean; inLava: boolean } | null;
+  private readonly carType: 'jeep' | 'rally' | 'sports';
   private readonly treeRagdolls: TreeRagdollManager | null;
   private readonly fuelPickupSource: { lastCollectedFuel: number } | null;
   private damage: DamageState;
@@ -212,6 +215,12 @@ export class GameLoop {
   /** Carried sub-step remainder of the fixed-timestep accumulator (seconds). */
   private accumulator = 0;
 
+  /** Special ability cooldown remaining (seconds). */
+  private specialCooldown = 0;
+  /** Whether the sports car is currently gliding. */
+  private gliding = false;
+  private glideTimer = 0;
+
   /** Timestamp (ms) of the previous tick, or null before the first tick. */
   private lastNow: number | null = null;
 
@@ -232,6 +241,7 @@ export class GameLoop {
     this.entities = deps.entities ?? [];
     this.chunks = deps.chunks ?? null;
     this.hazardPoolsRef = deps.hazardPools ?? null;
+    this.carType = deps.carType ?? 'jeep';
     this.treeRagdolls = deps.treeRagdolls ?? null;
     this.fuelPickupSource = deps.fuelPickups ?? null;
     this.damage = { health: 100 };
@@ -404,6 +414,36 @@ export class GameLoop {
       this.renderer.cycleCamera();
     }
     this.renderer.setRearView(this.input.isRearViewHeld());
+
+    // 2c. Special ability (Q key): per-car-type power.
+    this.specialCooldown = Math.max(0, this.specialCooldown - elapsedSeconds);
+    if (this.input.consumeSpecialRequested() && this.specialCooldown <= 0) {
+      if (this.carType === 'jeep') {
+        // Jeep: suspension jump — big upward impulse.
+        this.physics.applyChassisImpulse({ x: 0, y: 18000, z: 0 });
+        this.specialCooldown = 2.0;
+      } else if (this.carType === 'rally') {
+        // Rally: nitro boost — massive forward impulse.
+        this.physics.applyChassisImpulse({ x: 0, y: 0, z: 15000 });
+        this.specialCooldown = 3.0;
+      } else if (this.carType === 'sports') {
+        // Sports: activate wings — glide (reduced gravity) for 3 seconds.
+        this.gliding = true;
+        this.glideTimer = 3.0;
+        this.specialCooldown = 5.0;
+      }
+    }
+
+    // Sports car glide: counteract most of gravity while active.
+    if (this.gliding) {
+      this.glideTimer -= elapsedSeconds;
+      if (this.glideTimer <= 0) {
+        this.gliding = false;
+      } else {
+        // Push up to counteract ~80% of gravity (soft landing).
+        this.physics.applyChassisImpulse({ x: 0, y: 700, z: 0 });
+      }
+    }
 
     // 3. Player reset (Req 9.4): snap physics + run state back to the start.
     if (this.input.consumeResetRequested()) {

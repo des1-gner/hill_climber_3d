@@ -59,6 +59,9 @@ export class InputController {
   /** Latched camera-zoom-cycle request, cleared by `consumeZoomRequested()`. */
   private cameraZoomRequested = false;
 
+  /** Latched special ability request (Q key), cleared by `consumeSpecialRequested()`. */
+  private specialRequested = false;
+
   /**
    * Optional touch/virtual-button contribution. When any channel is non-zero
    * it is combined with keyboard input in `sample()`. Defaults to all-zero so
@@ -75,6 +78,9 @@ export class InputController {
     }
     if (event.code === 'KeyZ') {
       this.cameraZoomRequested = true;
+    }
+    if (event.code === 'KeyQ') {
+      this.specialRequested = true;
     }
     this.pressed.add(event.code);
   };
@@ -180,6 +186,13 @@ export class InputController {
   consumeZoomRequested(): boolean {
     const requested = this.cameraZoomRequested;
     this.cameraZoomRequested = false;
+    return requested;
+  }
+
+  /** Returns true once if Q was pressed (special ability). */
+  consumeSpecialRequested(): boolean {
+    const requested = this.specialRequested;
+    this.specialRequested = false;
     return requested;
   }
 

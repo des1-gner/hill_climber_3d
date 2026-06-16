@@ -222,6 +222,7 @@ async function bootstrap(overlay: LoadingOverlay, carType: CarType = 'jeep'): Pr
     hud,
     lod,
     startPosition,
+    carType,
     objective,
     surfaceFrictionAt,
     entities: [chunks, animals, fuelPickups, hazardPools],
