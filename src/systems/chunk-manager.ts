@@ -72,12 +72,14 @@ const GRASS_MAT = new THREE.MeshStandardMaterial({ color: 0x5b8f3a, roughness: 1
 
 // --- Textured materials for vegetation ---
 const LEAF_MAT = new THREE.MeshStandardMaterial({
-  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.3,
-  side: THREE.DoubleSide, roughness: 0.7, color: 0x44aa33, opacity: 0.92,
+  color: 0x3d8a2e,
+  roughness: 0.75,
+  side: THREE.DoubleSide,
 });
 const SNOW_LEAF_MAT = new THREE.MeshStandardMaterial({
-  map: leafTex, alphaMap: leafTex, transparent: true, alphaTest: 0.3,
-  side: THREE.DoubleSide, roughness: 0.7, color: 0xd0e4ee, opacity: 0.92,
+  color: 0xc8dce8,
+  roughness: 0.75,
+  side: THREE.DoubleSide,
 });
 const CACTUS_MAT_TEX = new THREE.MeshStandardMaterial({ map: cactusTex, roughness: 0.8 });
 
