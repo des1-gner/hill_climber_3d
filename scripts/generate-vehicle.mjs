@@ -125,8 +125,8 @@ function buildChassis() {
   addPart(chassis, new THREE.BoxGeometry(2.06, 0.3, 4.0, 20, 8, 48), M.trim, [0, -0.4, 0]);
   // Cabin / greenhouse — using a capsule-like shape (rounded box via high segments).
   addPart(chassis, new THREE.BoxGeometry(1.78, 0.72, 2.1, 36, 18, 38), M.paint, [0, 0.92, -0.25]);
-  // Rounded roof cap.
-  addPart(chassis, new THREE.SphereGeometry(1.0, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.trim, [0, 1.28, -0.25]);
+  // Flat roof cap.
+  addPart(chassis, new THREE.BoxGeometry(1.82, 0.1, 2.16, 24, 4, 26), M.trim, [0, 1.3, -0.25]);
   // Hood (slightly rounded).
   addPart(chassis, new THREE.BoxGeometry(1.88, 0.14, 1.5, 32, 8, 28), M.paint, [0, 0.56, 1.35]);
 
