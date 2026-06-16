@@ -32,6 +32,15 @@ const cactusTex = textureLoader.load('/textures/cactus.png');
 cactusTex.wrapS = cactusTex.wrapT = THREE.RepeatWrapping;
 cactusTex.repeat.set(2, 3);
 
+// Ground textures per biome (tiled across terrain chunks).
+const groundTextures: Record<Biome, THREE.Texture> = {
+  grassland: (() => { const t = textureLoader.load('/textures/ground_grass.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 8); return t; })(),
+  forest: (() => { const t = textureLoader.load('/textures/ground_grass.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 8); return t; })(),
+  desert: (() => { const t = textureLoader.load('/textures/ground_sand.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
+  rocky: (() => { const t = textureLoader.load('/textures/ground_dirt.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
+  snow: (() => { const t = textureLoader.load('/textures/ground_snow.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
+};
+
 interface Chunk {
   group: THREE.Group;
   terrainBodyId: number;
@@ -52,8 +61,13 @@ export interface ChunkManagerOptions {
 
 // --- Shared decoration assets (created once; never disposed) ---------------
 
-const TERRAIN_MAT = () =>
-  new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+const TERRAIN_MAT = (biome: Biome) =>
+  new THREE.MeshStandardMaterial({
+    map: groundTextures[biome],
+    vertexColors: true,
+    roughness: 0.92,
+    metalness: 0,
+  });
 
 // Grass tuft (three crossed blades), green.
 const GRASS_GEO = (() => {
@@ -188,11 +202,11 @@ function makeRng(seed: number): () => number {
 
 /** Per-biome decoration densities (counts per chunk). */
 const DENSITY: Record<Biome, { grass: number; trees: number; rocks: number; stones: number }> = {
-  grassland: { grass: 220, trees: 5, rocks: 8, stones: 1 },
-  forest: { grass: 120, trees: 26, rocks: 10, stones: 2 },
-  desert: { grass: 14, trees: 3, rocks: 6, stones: 2 },
-  rocky: { grass: 24, trees: 2, rocks: 44, stones: 5 },
-  snow: { grass: 30, trees: 7, rocks: 16, stones: 2 },
+  grassland: { grass: 600, trees: 5, rocks: 8, stones: 1 },
+  forest: { grass: 500, trees: 26, rocks: 10, stones: 2 },
+  desert: { grass: 10, trees: 3, rocks: 6, stones: 2 },
+  rocky: { grass: 60, trees: 2, rocks: 44, stones: 5 },
+  snow: { grass: 40, trees: 7, rocks: 16, stones: 2 },
 };
 
 export class ChunkManager {
@@ -245,7 +259,7 @@ export class ChunkManager {
     const group = new THREE.Group();
     group.name = `chunk_${key}`;
 
-    const terrainMat = TERRAIN_MAT();
+    const terrainMat = TERRAIN_MAT(biome);
     const mesh = new THREE.Mesh(geometry, terrainMat);
     mesh.position.set(centerX, 0, centerZ);
     mesh.receiveShadow = true;

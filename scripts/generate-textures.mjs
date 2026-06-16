@@ -140,8 +140,94 @@ function save(canvas, name) {
   console.log(`  ${name} (${buf.length} bytes)`);
 }
 
+// --- Ground/grass texture (tileable green with blade-like pattern) ---
+function generateGround() {
+  const canvas = createCanvas(SIZE, SIZE);
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(SIZE, SIZE);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const noise = fbm(x * 0.06, y * 0.06, 4);
+      // Vertical streaks simulating grass blades.
+      const blade = Math.sin(x * 1.2 + noise * 4) * 0.5 + 0.5;
+      const v = 0.3 + noise * 0.25 + blade * 0.15;
+      const i = (y * SIZE + x) * 4;
+      img.data[i] = clamp(v * 80);
+      img.data[i + 1] = clamp(v * 170 + 20);
+      img.data[i + 2] = clamp(v * 50);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// --- Dirt/rocky ground texture ---
+function generateDirt() {
+  const canvas = createCanvas(SIZE, SIZE);
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(SIZE, SIZE);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const noise = fbm(x * 0.08, y * 0.08, 5);
+      const v = 0.35 + noise * 0.3;
+      const i = (y * SIZE + x) * 4;
+      img.data[i] = clamp(v * 150);
+      img.data[i + 1] = clamp(v * 120);
+      img.data[i + 2] = clamp(v * 80);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// --- Snow ground texture ---
+function generateSnow() {
+  const canvas = createCanvas(SIZE, SIZE);
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(SIZE, SIZE);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const noise = fbm(x * 0.05, y * 0.05, 3);
+      const v = 0.85 + noise * 0.12;
+      const i = (y * SIZE + x) * 4;
+      img.data[i] = clamp(v * 240);
+      img.data[i + 1] = clamp(v * 245);
+      img.data[i + 2] = clamp(v * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+// --- Sand texture ---
+function generateSand() {
+  const canvas = createCanvas(SIZE, SIZE);
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(SIZE, SIZE);
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const noise = fbm(x * 0.1, y * 0.1, 4);
+      const v = 0.6 + noise * 0.2;
+      const i = (y * SIZE + x) * 4;
+      img.data[i] = clamp(v * 220);
+      img.data[i + 1] = clamp(v * 190);
+      img.data[i + 2] = clamp(v * 120);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
 console.log('Generating textures:');
 save(generateBark(), 'bark.png');
 save(generateLeaf(), 'leaf.png');
 save(generateCactus(), 'cactus.png');
+save(generateGround(), 'ground_grass.png');
+save(generateDirt(), 'ground_dirt.png');
+save(generateSnow(), 'ground_snow.png');
+save(generateSand(), 'ground_sand.png');
 console.log('Done.');

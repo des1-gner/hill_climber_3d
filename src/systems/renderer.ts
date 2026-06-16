@@ -213,9 +213,31 @@ export class Renderer {
     const height = canvas.clientHeight || canvas.height || 1;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x87ceeb); // sky
+    // Sky: gradient from blue to light blue at horizon.
+    this.scene.background = new THREE.Color(0x87ceeb);
     // Distance fog blends the far edges of the big map into the sky.
     this.scene.fog = new THREE.Fog(0x87ceeb, 220, 900);
+
+    // Sun (a bright sphere in the sky for visual reference).
+    const sunGeo = new THREE.SphereGeometry(8, 16, 12);
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffd0 });
+    const sun = new THREE.Mesh(sunGeo, sunMat);
+    sun.position.set(200, 350, 300);
+    this.scene.add(sun);
+
+    // Clouds: a scattering of semi-transparent ellipsoids at high altitude.
+    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+    for (let i = 0; i < 30; i++) {
+      const cg = new THREE.SphereGeometry(12 + Math.random() * 20, 8, 6);
+      const cloud = new THREE.Mesh(cg, cloudMat);
+      cloud.scale.set(1 + Math.random() * 2, 0.4 + Math.random() * 0.3, 1 + Math.random());
+      cloud.position.set(
+        (Math.random() - 0.5) * 800,
+        180 + Math.random() * 80,
+        (Math.random() - 0.5) * 800,
+      );
+      this.scene.add(cloud);
+    }
 
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, LOD_SETTINGS[3].drawDistance);
     this.camera.position.set(0, 5, -10);
