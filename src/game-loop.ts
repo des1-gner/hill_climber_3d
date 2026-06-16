@@ -115,6 +115,8 @@ export interface GameLoopDeps {
    * game loop checks for tree hits each step and applies damage.
    */
   chunks?: ChunkManager;
+  /** Optional hazard pools — water slows, lava damages. */
+  hazardPools?: { inWater: boolean; inLava: boolean };
   /** Optional tree ragdoll manager — uprooted trees tumble realistically. */
   treeRagdolls?: TreeRagdollManager;
   /** Optional fuel pickup manager — collected fuel is added to the run state. */
@@ -183,6 +185,7 @@ export class GameLoop {
   private readonly surfaceFrictionAt: ((x: number, z: number) => number) | null;
   private readonly entities: WorldEntity[];
   private readonly chunks: ChunkManager | null;
+  private readonly hazardPoolsRef: { inWater: boolean; inLava: boolean } | null;
   private readonly treeRagdolls: TreeRagdollManager | null;
   private readonly fuelPickupSource: { lastCollectedFuel: number } | null;
   private damage: DamageState;
@@ -223,6 +226,7 @@ export class GameLoop {
     this.surfaceFrictionAt = deps.surfaceFrictionAt ?? null;
     this.entities = deps.entities ?? [];
     this.chunks = deps.chunks ?? null;
+    this.hazardPoolsRef = deps.hazardPools ?? null;
     this.treeRagdolls = deps.treeRagdolls ?? null;
     this.fuelPickupSource = deps.fuelPickups ?? null;
     this.damage = { health: 100 };
@@ -369,6 +373,21 @@ export class GameLoop {
       this.run = evaluateBalance(this.run, state.pitchDeg, state.rollDeg, FIXED_DT);
       this.run = updateDistance(this.run, state.chassisPosition);
       this.run = applyEndConditions(this.run);
+
+      // Hazard pools: water slows the car, lava damages.
+      if (this.hazardPoolsRef) {
+        if (this.hazardPoolsRef.inWater) {
+          // Apply drag impulse opposing velocity to simulate water resistance.
+          const v = state.linearSpeed;
+          if (Math.abs(v) > 0.5) {
+            this.physics.applyChassisImpulse({ x: 0, y: 0, z: -v * 80 });
+          }
+        }
+        if (this.hazardPoolsRef.inLava) {
+          // Lava damages over time (burns the car).
+          this.damage = { health: this.damage.health - 2 * FIXED_DT };
+        }
+      }
 
       // Shift interpolation snapshots.
       this.prev = this.curr;

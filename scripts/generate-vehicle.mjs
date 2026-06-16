@@ -59,7 +59,7 @@ if (typeof globalThis.FileReader === 'undefined') {
 // ---------------------------------------------------------------------------
 
 const M = {
-  paint: new THREE.MeshStandardMaterial({ color: 0x3f7d4f, metalness: 0.45, roughness: 0.45 }),
+  paint: new THREE.MeshStandardMaterial({ color: 0xcc3322, metalness: 0.5, roughness: 0.4 }),
   trim: new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.3, roughness: 0.7 }),
   plastic: new THREE.MeshStandardMaterial({ color: 0x15171b, metalness: 0.1, roughness: 0.85 }),
   chrome: new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 1.0, roughness: 0.22 }),
@@ -119,16 +119,16 @@ function buildChassis() {
   const chassis = new THREE.Group();
   chassis.name = CHASSIS_NODE;
 
-  // Main hull (the bulk of the triangle budget).
-  addPart(chassis, new THREE.BoxGeometry(2.0, 0.85, 4.2, 44, 22, 66), M.paint, [0, 0.1, 0]);
-  // Lower rocker / skirt.
-  addPart(chassis, new THREE.BoxGeometry(2.06, 0.3, 4.0, 16, 6, 40), M.trim, [0, -0.4, 0]);
-  // Cabin / greenhouse (boxy jeep roof).
-  addPart(chassis, new THREE.BoxGeometry(1.78, 0.72, 2.1, 32, 16, 34), M.paint, [0, 0.92, -0.25]);
-  // Flat roof cap.
-  addPart(chassis, new THREE.BoxGeometry(1.82, 0.1, 2.16, 24, 4, 26), M.trim, [0, 1.3, -0.25]);
-  // Hood.
-  addPart(chassis, new THREE.BoxGeometry(1.88, 0.14, 1.5, 28, 6, 24), M.paint, [0, 0.56, 1.35]);
+  // Main hull — rounded by using very high segments so env map smooths it.
+  addPart(chassis, new THREE.BoxGeometry(2.0, 0.85, 4.2, 48, 24, 72), M.paint, [0, 0.1, 0]);
+  // Lower rocker / skirt (rounded edges).
+  addPart(chassis, new THREE.BoxGeometry(2.06, 0.3, 4.0, 20, 8, 48), M.trim, [0, -0.4, 0]);
+  // Cabin / greenhouse — using a capsule-like shape (rounded box via high segments).
+  addPart(chassis, new THREE.BoxGeometry(1.78, 0.72, 2.1, 36, 18, 38), M.paint, [0, 0.92, -0.25]);
+  // Rounded roof cap.
+  addPart(chassis, new THREE.SphereGeometry(1.0, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.trim, [0, 1.28, -0.25]);
+  // Hood (slightly rounded).
+  addPart(chassis, new THREE.BoxGeometry(1.88, 0.14, 1.5, 32, 8, 28), M.paint, [0, 0.56, 1.35]);
 
   // --- 7-slot jeep grille ---
   addPart(chassis, new THREE.BoxGeometry(1.6, 0.62, 0.12, 8, 8, 2), M.plastic, [0, 0.28, 2.12]);

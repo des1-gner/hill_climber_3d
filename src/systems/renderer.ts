@@ -319,6 +319,18 @@ export class Renderer {
       const mesh = obj as THREE.Mesh;
       if (mesh.isMesh) {
         mesh.castShadow = true;
+        // Add a black outline (inverted-hull method): a slightly-scaled copy
+        // with flipped normals and a black unlit material rendered behind.
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (mat && !mat.transparent) {
+          const outlineMat = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            side: THREE.BackSide,
+          });
+          const outline = new THREE.Mesh(mesh.geometry, outlineMat);
+          outline.scale.multiplyScalar(1.04);
+          mesh.add(outline);
+        }
       }
     });
     this.vehicleGroup.add(this.chassisMesh);

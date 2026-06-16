@@ -14,6 +14,7 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 import type { Vec3 } from '../types';
 import type { RapierPhysicsEngine } from './physics-engine';
 import type { FuelPickupManager } from './fuel-pickup';
+import type { HazardPoolManager } from './hazard-pools';
 import {
   CHUNK_SIZE,
   BIOME_FRICTION,
@@ -47,10 +48,9 @@ interface Chunk {
 }
 
 export interface ChunkManagerOptions {
-  /** Chunk view radius (in chunks) around the player. Defaults to 3. */
   viewRadius?: number;
-  /** Optional fuel pickup manager to place pickups per chunk. */
   fuelPickups?: FuelPickupManager;
+  hazardPools?: HazardPoolManager;
 }
 
 // --- Shared decoration assets (created once; never disposed) ---------------
@@ -263,6 +263,7 @@ export class ChunkManager {
   private readonly scene: THREE.Object3D;
   private readonly physics: RapierPhysicsEngine;
   private readonly fuelPickups: FuelPickupManager | null;
+  private readonly hazardPools: HazardPoolManager | null;
   private readonly viewRadius: number;
   private readonly chunks = new Map<string, Chunk>();
 
@@ -270,6 +271,7 @@ export class ChunkManager {
     this.scene = scene;
     this.physics = physics;
     this.fuelPickups = options.fuelPickups ?? null;
+    this.hazardPools = options.hazardPools ?? null;
     this.viewRadius = options.viewRadius ?? 3;
   }
 
@@ -429,6 +431,19 @@ export class ChunkManager {
         canister.position.set(fx, fy + 0.3, fz);
         group.add(canister);
         this.fuelPickups.addPickup(canister, fx, fz, fy);
+      }
+    }
+
+    // Hazard pools: water in grassland/forest low areas, lava in rocky biome.
+    if (this.hazardPools && rng() > 0.6) {
+      const px = centerX + rand();
+      const pz = centerZ + rand();
+      if (terrainSlopeDegrees(px, pz) < 10) {
+        const poolType = biome === 'rocky' ? 'lava' : (biome === 'grassland' || biome === 'forest') ? 'water' : null;
+        if (poolType) {
+          const radius = 4 + rng() * 8;
+          this.hazardPools.createPool(poolType, px, pz, radius, group);
+        }
       }
     }
   }

@@ -18,6 +18,7 @@ import { GltfAssetLoader } from './systems/asset-loader';
 import { terrainElevation, surfaceFrictionAt } from './systems/terrain';
 import { ChunkManager } from './systems/chunk-manager';
 import { FuelPickupManager } from './systems/fuel-pickup';
+import { HazardPoolManager } from './systems/hazard-pools';
 import { LoadingOverlay } from './systems/loading-overlay';
 import { RapierPhysicsEngine } from './systems/physics-engine';
 import { Renderer } from './systems/renderer';
@@ -170,7 +171,8 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
   // Infinite streaming world: generate chunks around the spawn before starting
   // so the vehicle lands on solid ground.
   const fuelPickups = new FuelPickupManager({ fuelPerPickup: 200 });
-  const chunks = new ChunkManager(renderer.scene, physics, { viewRadius: 3, fuelPickups });
+  const hazardPools = new HazardPoolManager();
+  const chunks = new ChunkManager(renderer.scene, physics, { viewRadius: 3, fuelPickups, hazardPools });
   const startPosition = resolveSpawn();
   chunks.ensureAround(startPosition);
 
@@ -197,8 +199,9 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
     startPosition,
     objective,
     surfaceFrictionAt,
-    entities: [chunks, animals, fuelPickups],
+    entities: [chunks, animals, fuelPickups, hazardPools],
     chunks,
+    hazardPools,
     treeRagdolls,
     fuelPickups,
   });
