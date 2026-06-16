@@ -64,10 +64,10 @@ const M = {
   plastic: new THREE.MeshStandardMaterial({ color: 0x15171b, metalness: 0.1, roughness: 0.85 }),
   chrome: new THREE.MeshStandardMaterial({ color: 0xc9ced4, metalness: 1.0, roughness: 0.22 }),
   glass: new THREE.MeshStandardMaterial({
-    color: 0x88bbdd,
-    metalness: 0.05,
+    color: 0x111118,
+    metalness: 0.1,
     roughness: 0.02,
-    opacity: 0.2,
+    opacity: 0.75,
     transparent: true,
     envMapIntensity: 1.8,
   }),
@@ -180,9 +180,9 @@ function buildChassis() {
     addPart(chassis, archGeo, M.plastic, [ax, -0.32, az], [0, Math.PI / 2, 0]);
   }
 
-  // --- Number plates (front + rear) with a row of "characters" ---
-  addNumberPlate(chassis, [0, -0.12, 2.2], 0);
-  addNumberPlate(chassis, [0, -0.12, -2.2], Math.PI);
+  // --- Number plates (front + rear) moved outward so they're visible ---
+  addNumberPlate(chassis, [0, -0.02, 2.32], 0);
+  addNumberPlate(chassis, [0, -0.02, -2.32], Math.PI);
 
   // --- Interior (visible through transparent glass) ---
   buildInterior(chassis);
@@ -219,16 +219,25 @@ function buildInterior(chassis) {
   addPart(chassis, new THREE.BoxGeometry(1.5, 0.06, 1.8, 4, 1, 4), M.dashboard, [0, 0.15, -0.1]);
 }
 
-/** Add a number plate (yellow panel + dark frame + 6 character blocks). */
+/** Add a number plate with visible "H1LL 3D" text using block letters. */
 function addNumberPlate(parent, pos, yaw) {
   const plate = new THREE.Group();
   plate.position.set(pos[0], pos[1], pos[2]);
   plate.rotation.y = yaw;
-  // Panel faces +Z in local space (front of the plate).
-  addPart(plate, new THREE.BoxGeometry(0.62, 0.2, 0.04, 6, 3, 1), M.plate, [0, 0, 0.02]);
-  for (let i = 0; i < 6; i += 1) {
-    const x = -0.24 + i * 0.096;
-    addPart(plate, new THREE.BoxGeometry(0.05, 0.11, 0.02, 1, 2, 1), M.plateText, [x, 0, 0.05]);
+  // Yellow panel.
+  addPart(plate, new THREE.BoxGeometry(0.72, 0.22, 0.03, 6, 3, 1), M.plate, [0, 0, 0]);
+  // Frame border (dark).
+  addPart(plate, new THREE.BoxGeometry(0.76, 0.26, 0.02, 4, 3, 1), M.trim, [0, 0, -0.005]);
+
+  // Block-letter text "H1LL3D" — each character is a small raised dark box.
+  const text = 'H1LL3D';
+  const charW = 0.07;
+  const charH = 0.13;
+  const spacing = 0.095;
+  const startX = -(text.length - 1) * spacing / 2;
+  for (let i = 0; i < text.length; i++) {
+    const cx = startX + i * spacing;
+    addPart(plate, new THREE.BoxGeometry(charW, charH, 0.015, 1, 1, 1), M.plateText, [cx, 0, 0.025]);
   }
   parent.add(plate);
 }
