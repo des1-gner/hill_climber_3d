@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import type { Vec3 } from '../types';
 import type { RapierPhysicsEngine } from './physics-engine';
 import { biomeAt, terrainElevation, type Biome } from './terrain';
+import { playCreatureHit } from './audio';
 
 type AnimalType = 'penguin' | 'sheep' | 'boar' | 'goat' | 'scorpion';
 
@@ -298,6 +299,7 @@ export class AnimalManager {
 
       // Hit by the car -> shove the car and launch the animal.
       if (dist < this.knockRadius) {
+        playCreatureHit();
         const inv = dist > 1e-3 ? 1 / dist : 1;
         // Push the car away from the animal.
         this.physics.applyChassisImpulse({

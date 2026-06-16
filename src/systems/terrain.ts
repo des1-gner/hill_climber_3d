@@ -143,11 +143,42 @@ const BIOME_COLOR: Record<Biome, THREE.Color> = {
 const C_ROCK = new THREE.Color(0x595b60);
 const _cScratch = new THREE.Color();
 
-/** Resolve a vertex colour from biome, slope, and a small jitter. */
+const _cBlend = new THREE.Color();
+
+/** Resolve a vertex colour with smooth biome transition blending. */
 function vertexColor(x: number, z: number, slopeDeg: number, jitter: number, target: THREE.Color): void {
-  const b = biomeAt(x, z);
-  target.copy(BIOME_COLOR[b]);
+  // Use the raw biome parameter to blend between adjacent biome colors
+  // at transition zones instead of hard-cutting.
+  const t = biomeParam(x, z);
+
+  // Blend regions: each biome boundary gets a smooth lerp zone.
+  if (t < 0.22) {
+    target.copy(BIOME_COLOR.grassland);
+  } else if (t < 0.28) {
+    // Grassland → forest transition.
+    const blend = (t - 0.22) / 0.06;
+    target.copy(BIOME_COLOR.grassland).lerp(_cBlend.copy(BIOME_COLOR.forest), blend);
+  } else if (t < 0.42) {
+    target.copy(BIOME_COLOR.forest);
+  } else if (t < 0.48) {
+    const blend = (t - 0.42) / 0.06;
+    target.copy(BIOME_COLOR.forest).lerp(_cBlend.copy(BIOME_COLOR.desert), blend);
+  } else if (t < 0.58) {
+    target.copy(BIOME_COLOR.desert);
+  } else if (t < 0.64) {
+    const blend = (t - 0.58) / 0.06;
+    target.copy(BIOME_COLOR.desert).lerp(_cBlend.copy(BIOME_COLOR.rocky), blend);
+  } else if (t < 0.78) {
+    target.copy(BIOME_COLOR.rocky);
+  } else if (t < 0.84) {
+    const blend = (t - 0.78) / 0.06;
+    target.copy(BIOME_COLOR.rocky).lerp(_cBlend.copy(BIOME_COLOR.snow), blend);
+  } else {
+    target.copy(BIOME_COLOR.snow);
+  }
+
   // Steep faces show bare rock regardless of biome.
+  const b = biomeAt(x, z);
   if (slopeDeg > 30 && b !== 'snow') {
     target.lerp(C_ROCK, Math.min(1, (slopeDeg - 30) / 15));
   }

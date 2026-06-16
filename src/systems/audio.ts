@@ -232,6 +232,21 @@ export function playPickup(): void {
   }
 }
 
+/** Creature hit/death squeak. */
+export function playCreatureHit(): void {
+  if (!ctx || !masterGain) return;
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 800;
+  osc.frequency.setTargetAtTime(300, ctx.currentTime + 0.05, 0.04);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.2, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+  osc.connect(g).connect(masterGain);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.25);
+}
+
 /** Checkpoint reached chime. */
 export function playCheckpoint(): void {
   if (!ctx || !masterGain) return;

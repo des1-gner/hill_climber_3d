@@ -112,7 +112,7 @@ export class FuelPickupManager {
       if (p.collected) continue;
       // Hover + spin.
       p.phase += dt * 2.5;
-      p.mesh.position.y = p.baseY + 1.2 + Math.sin(p.phase) * 0.3;
+      p.mesh.position.y = p.baseY + 0.4 + Math.sin(p.phase) * 0.15;
       p.mesh.rotation.y += dt * 2;
 
       // Collection check.

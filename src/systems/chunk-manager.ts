@@ -165,22 +165,65 @@ const OAK_CANOPY_GEO = (() => {
   return BufferGeometryUtils.mergeGeometries(leaves, false);
 })();
 
-// Cactus: smooth connected body + arms with sphere joints (no gaps).
+// Cactus: body + arms + spikes + a small flower on top.
 const CACTUS_GEO = (() => {
+  const parts: THREE.BufferGeometry[] = [];
   const body = new THREE.CylinderGeometry(0.38, 0.42, 4.2, 16, 8);
   body.translate(0, 2.1, 0);
+  parts.push(body);
   const jointL = new THREE.SphereGeometry(0.26, 12, 8);
   jointL.translate(-0.42, 2.8, 0);
+  parts.push(jointL);
   const armL = new THREE.CylinderGeometry(0.22, 0.24, 2.0, 12, 4);
   armL.rotateZ(0.7);
   armL.translate(-0.9, 3.5, 0);
+  parts.push(armL);
   const jointR = new THREE.SphereGeometry(0.26, 12, 8);
   jointR.translate(0.42, 3.4, 0);
+  parts.push(jointR);
   const armR = new THREE.CylinderGeometry(0.22, 0.24, 1.7, 12, 4);
   armR.rotateZ(-0.6);
   armR.translate(0.85, 4.0, 0);
-  return BufferGeometryUtils.mergeGeometries([body, jointL, armL, jointR, armR], false);
+  parts.push(armR);
+  // Spikes: small cones sticking out radially from the main body.
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    const y = 0.8 + (i % 6) * 0.6;
+    const spike = new THREE.ConeGeometry(0.03, 0.25, 4);
+    spike.rotateZ(-Math.PI / 2);
+    spike.rotateY(angle);
+    spike.translate(Math.cos(angle) * 0.44, y, Math.sin(angle) * 0.44);
+    parts.push(spike);
+  }
+  // Small flower on top.
+  const flower = new THREE.SphereGeometry(0.15, 8, 6);
+  flower.translate(0, 4.4, 0);
+  parts.push(flower);
+  return BufferGeometryUtils.mergeGeometries(parts, false);
 })();
+
+// Flower geometry: a small stem + petals for biome decoration.
+const FLOWER_GEO = (() => {
+  const parts: THREE.BufferGeometry[] = [];
+  const stem = new THREE.CylinderGeometry(0.02, 0.03, 0.4, 4);
+  stem.translate(0, 0.2, 0);
+  parts.push(stem);
+  // 5 petals around a centre.
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const petal = new THREE.SphereGeometry(0.08, 6, 4);
+    petal.scale(1, 0.4, 1);
+    petal.translate(Math.cos(a) * 0.12, 0.42, Math.sin(a) * 0.12);
+    parts.push(petal);
+  }
+  // Centre.
+  const centre = new THREE.SphereGeometry(0.06, 6, 4);
+  centre.translate(0, 0.44, 0);
+  parts.push(centre);
+  return BufferGeometryUtils.mergeGeometries(parts, false);
+})();
+const FLOWER_COLORS = [0xff6688, 0xffdd44, 0xaa55ff, 0xff8833, 0x66ccff];
+const FLOWER_MATS = FLOWER_COLORS.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 }));
 
 // Loose decorative rock + collidable stone share an icosahedron.
 const ROCK_GEO = new THREE.IcosahedronGeometry(0.5, 1);
@@ -201,12 +244,12 @@ function makeRng(seed: number): () => number {
 }
 
 /** Per-biome decoration densities (counts per chunk). */
-const DENSITY: Record<Biome, { grass: number; trees: number; rocks: number; stones: number }> = {
-  grassland: { grass: 600, trees: 5, rocks: 8, stones: 1 },
-  forest: { grass: 500, trees: 26, rocks: 10, stones: 2 },
-  desert: { grass: 10, trees: 3, rocks: 6, stones: 2 },
-  rocky: { grass: 60, trees: 2, rocks: 44, stones: 5 },
-  snow: { grass: 40, trees: 7, rocks: 16, stones: 2 },
+const DENSITY: Record<Biome, { grass: number; trees: number; rocks: number; stones: number; flowers: number }> = {
+  grassland: { grass: 2000, trees: 5, rocks: 8, stones: 1, flowers: 40 },
+  forest: { grass: 1500, trees: 26, rocks: 10, stones: 2, flowers: 20 },
+  desert: { grass: 10, trees: 3, rocks: 6, stones: 2, flowers: 8 },
+  rocky: { grass: 200, trees: 2, rocks: 44, stones: 5, flowers: 6 },
+  snow: { grass: 100, trees: 7, rocks: 16, stones: 2, flowers: 3 },
 };
 
 export class ChunkManager {
@@ -354,6 +397,14 @@ export class ChunkManager {
       stoneIds.push(this.physics.addStaticBoulder({ x: wx, y: wy, z: wz }, r * 0.85));
     }
 
+    // Flowers: small colourful accents scattered on gentle ground.
+    this.scatter(group, instanced, FLOWER_GEO, FLOWER_MATS[Math.floor(rng() * FLOWER_MATS.length)] ?? FLOWER_MATS[0]!, d.flowers, centerX, centerZ, rand, rng, {
+      yawOnly: true,
+      minScale: 0.6,
+      maxScale: 1.8,
+      maxSlope: 20,
+    });
+
     // Fuel pickup: one per chunk (50% chance), placed on gentle ground.
     if (this.fuelPickups && rng() > 0.5) {
       const fx = centerX + rand();
@@ -361,7 +412,7 @@ export class ChunkManager {
       if (terrainSlopeDegrees(fx, fz) < 18) {
         const fy = terrainElevation(fx, fz);
         const canister = this.fuelPickups.createCanisterMesh();
-        canister.position.set(fx, fy + 1.2, fz);
+        canister.position.set(fx, fy + 0.3, fz);
         group.add(canister);
         this.fuelPickups.addPickup(canister, fx, fz, fy);
       }

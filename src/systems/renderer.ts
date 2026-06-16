@@ -370,7 +370,7 @@ export class Renderer {
     this.objectiveMarker.name = 'objectiveMarker';
     this.objectiveMarker.visible = false;
 
-    const poleHeight = 12;
+    const poleHeight = 24;
     const pole = new THREE.Mesh(
       new THREE.CylinderGeometry(0.25, 0.25, poleHeight, 8),
       new THREE.MeshStandardMaterial({
@@ -658,7 +658,7 @@ export class Renderer {
     if (this.objectiveMarker.visible) {
       this.markerSpin += dt;
       this.objectiveSpinner.rotation.y = this.markerSpin * 1.5;
-      this.objectiveSpinner.position.y = 12 + Math.sin(this.markerSpin * 2) * 0.4;
+      this.objectiveSpinner.position.y = 24 + Math.sin(this.markerSpin * 2) * 0.5;
     }
 
     this.renderer.render(this.scene, this.camera);
