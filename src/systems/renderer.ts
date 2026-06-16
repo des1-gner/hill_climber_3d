@@ -453,31 +453,46 @@ export class Renderer {
     const falloff = 1.8;
     let glassShattered = false;
 
-    this.chassisMesh.traverse((obj) => {
-      const mesh = obj as THREE.Mesh;
-      if (!mesh.isMesh && !obj.name.startsWith('mirror_')) return;
+    // Collect objects first to avoid traverse-during-modify issues.
+    const objects: THREE.Object3D[] = [];
+    this.chassisMesh.traverse((obj) => { objects.push(obj); });
 
-      // --- Mirror detachment: side impacts knock mirrors off ---
+    for (const obj of objects) {
+      // --- Mirror detachment ---
       if (obj.name.startsWith('mirror_')) {
         const isLeft = obj.name === 'mirror_left';
         const sideAlign = isLeft ? -dir.x : dir.x;
         if (sideAlign > 0.3 && strength > 0.25) {
-          obj.visible = false; // mirror falls off
+          obj.visible = false;
         }
-        return;
+        continue;
       }
 
-      if (!mesh.isMesh) return;
+      // --- Shift POSITION of direct children (grille, lights, plates, etc.) ---
+      if (obj !== this.chassisMesh && obj.parent === this.chassisMesh) {
+        const p = obj.position;
+        const dot = p.x * dir.x + p.y * dir.y + p.z * dir.z;
+        if (dot > 0) {
+          const proximity = Math.max(0, 1 - (1.5 - dot) / falloff);
+          if (proximity > 0) {
+            const shift = maxDisplace * proximity * 0.7;
+            p.x -= dir.x * shift;
+            p.y -= dir.y * shift * 0.2;
+            p.z -= dir.z * shift;
+          }
+        }
+      }
+
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh) continue;
       const geo = mesh.geometry as THREE.BufferGeometry;
       const pos = geo.getAttribute('position') as THREE.BufferAttribute | undefined;
-      if (!pos) return;
+      if (!pos) continue;
 
       const mat = mesh.material as THREE.MeshStandardMaterial;
       const isGlass = mat && mat.transparent && mat.opacity < 0.9;
 
-      // Windows shatter FIRST — very low threshold so glass breaks before
-      // body panels deform significantly. Use the mesh's position (relative to
-      // the chassis group) to determine which window faces the impact.
+      // Windows shatter first.
       if (isGlass && strength > 0.15) {
         const meshPos = new THREE.Vector3();
         mesh.getWorldPosition(meshPos);
@@ -486,15 +501,14 @@ export class Renderer {
           this.chassisMesh.getWorldPosition(chassisWorldPos);
           meshPos.sub(chassisWorldPos);
         }
-        const facing = meshPos.dot(dir);
-        if (facing > 0) {
-          mesh.visible = false; // window shatters
+        if (meshPos.dot(dir) > 0) {
+          mesh.visible = false;
           glassShattered = true;
-          return;
+          continue;
         }
       }
 
-      // Deform all parts (body, trim, interior) together.
+      // Deform vertices.
       for (let i = 0; i < pos.count; i++) {
         const vx = pos.getX(i);
         const vy = pos.getY(i);
@@ -508,7 +522,7 @@ export class Renderer {
       }
       pos.needsUpdate = true;
       geo.computeVertexNormals();
-    });
+    }
     return { glassShattered };
   }
 
