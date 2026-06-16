@@ -169,7 +169,7 @@ async function bootstrap(overlay: LoadingOverlay): Promise<void> {
 
   // Infinite streaming world: generate chunks around the spawn before starting
   // so the vehicle lands on solid ground.
-  const fuelPickups = new FuelPickupManager({ fuelPerPickup: 25 });
+  const fuelPickups = new FuelPickupManager({ fuelPerPickup: 200 });
   const chunks = new ChunkManager(renderer.scene, physics, { viewRadius: 3, fuelPickups });
   const startPosition = resolveSpawn();
   chunks.ensureAround(startPosition);

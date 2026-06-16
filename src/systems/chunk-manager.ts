@@ -32,14 +32,8 @@ const cactusTex = textureLoader.load('/textures/cactus.png');
 cactusTex.wrapS = cactusTex.wrapT = THREE.RepeatWrapping;
 cactusTex.repeat.set(2, 3);
 
-// Ground textures per biome (tiled across terrain chunks).
-const groundTextures: Record<Biome, THREE.Texture> = {
-  grassland: (() => { const t = textureLoader.load('/textures/ground_grass.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 8); return t; })(),
-  forest: (() => { const t = textureLoader.load('/textures/ground_grass.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 8); return t; })(),
-  desert: (() => { const t = textureLoader.load('/textures/ground_sand.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
-  rocky: (() => { const t = textureLoader.load('/textures/ground_dirt.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
-  snow: (() => { const t = textureLoader.load('/textures/ground_snow.png'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })(),
-};
+// No per-biome ground texture — vertex colors handle all biome coloring and
+// blend smoothly at transitions, eliminating hard chunk-boundary lines.
 
 interface Chunk {
   group: THREE.Group;
@@ -61,28 +55,46 @@ export interface ChunkManagerOptions {
 
 // --- Shared decoration assets (created once; never disposed) ---------------
 
-const TERRAIN_MAT = (biome: Biome) =>
+const TERRAIN_MAT = () =>
   new THREE.MeshStandardMaterial({
-    map: groundTextures[biome],
     vertexColors: true,
     roughness: 0.92,
     metalness: 0,
   });
 
-// Grass tuft (three crossed blades), green.
-const GRASS_GEO = (() => {
-  const blade = new THREE.PlaneGeometry(0.4, 0.6, 1, 1);
-  blade.translate(0, 0.3, 0);
-  const parts: THREE.BufferGeometry[] = [];
+// Grass: multiple blade variants — tapered triangles instead of rectangles.
+const GRASS_VARIANTS: THREE.BufferGeometry[] = [];
+for (let v = 0; v < 4; v++) {
+  const h = 0.35 + v * 0.18;
+  const w = 0.05 + v * 0.015;
+  // Use a tapered shape (triangle-ish) by creating a thin plane and tapering the top.
+  const blade = new THREE.BufferGeometry();
+  const verts = new Float32Array([
+    -w, 0, 0,
+    w, 0, 0,
+    w * 0.2, h, 0,  // tapered top
+    -w * 0.2, h, 0,
+  ]);
+  const indices = [0, 1, 2, 0, 2, 3];
+  blade.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+  blade.setIndex(indices);
+  blade.computeVertexNormals();
+  // Make a tuft of 3 crossed blades.
+  const tuft: THREE.BufferGeometry[] = [];
   for (let i = 0; i < 3; i++) {
     const b = blade.clone();
-    b.rotateY((i / 3) * Math.PI);
-    parts.push(b);
+    b.rotateY((i / 3) * Math.PI + v * 0.25);
+    tuft.push(b);
   }
-  blade.dispose();
-  return BufferGeometryUtils.mergeGeometries(parts, false);
-})();
-const GRASS_MAT = new THREE.MeshStandardMaterial({ color: 0x5b8f3a, roughness: 1, side: THREE.DoubleSide });
+  GRASS_VARIANTS.push(BufferGeometryUtils.mergeGeometries(tuft, false));
+}
+// Multiple grass colors.
+const GRASS_MATS = [
+  new THREE.MeshStandardMaterial({ color: 0x4d9930, roughness: 1, side: THREE.DoubleSide }),
+  new THREE.MeshStandardMaterial({ color: 0x5baa38, roughness: 1, side: THREE.DoubleSide }),
+  new THREE.MeshStandardMaterial({ color: 0x6bbb40, roughness: 1, side: THREE.DoubleSide }),
+  new THREE.MeshStandardMaterial({ color: 0x7bcc55, roughness: 1, side: THREE.DoubleSide }),
+];
 
 // --- Textured materials for vegetation ---
 const LEAF_MAT = new THREE.MeshStandardMaterial({
@@ -114,24 +126,21 @@ const OAK_TRUNK_GEO = (() => {
 })();
 const TRUNK_MAT = new THREE.MeshStandardMaterial({ color: 0x5c3e20, roughness: 0.9, metalness: 0 });
 
-// Pine canopy: dense conical volume of randomly oriented leaf quads that
-// overlap heavily, giving an organic rounded silhouette rather than blocky tiers.
+// Pine canopy: dense conical volume of randomly oriented circular leaf discs.
 const PINE_CANOPY_GEO = (() => {
   const leaves: THREE.BufferGeometry[] = [];
   const baseY = 2.0;
   const height = 5.5;
   for (let i = 0; i < 320; i++) {
-    // Distribute points in a cone: wider at bottom, narrow at top.
-    const t = Math.random(); // 0 = bottom, 1 = top
+    const t = Math.random();
     const y = baseY + t * height;
-    const maxR = (1 - t) * 2.8 + 0.3; // cone radius at this height
+    const maxR = (1 - t) * 2.8 + 0.3;
     const angle = Math.random() * Math.PI * 2;
     const r = Math.random() * maxR;
     const lx = Math.cos(angle) * r;
     const lz = Math.sin(angle) * r;
-    const size = 1.0 + Math.random() * 0.8;
-    const leaf = new THREE.PlaneGeometry(size, size);
-    // Random orientation so each leaf faces a different way — breaks up the grid.
+    const size = 0.5 + Math.random() * 0.4;
+    const leaf = new THREE.CircleGeometry(size, 6); // hexagonal disc — not square
     leaf.rotateX(Math.random() * Math.PI - Math.PI / 2);
     leaf.rotateY(Math.random() * Math.PI * 2);
     leaf.rotateZ(Math.random() * 0.5 - 0.25);
@@ -141,21 +150,19 @@ const PINE_CANOPY_GEO = (() => {
   return BufferGeometryUtils.mergeGeometries(leaves, false);
 })();
 
-// Oak canopy: dense sphere of randomly oriented leaf quads — looks rounded and
-// organic, not square/tiled.
+// Oak canopy: dense spherical ball of circular leaf discs.
 const OAK_CANOPY_GEO = (() => {
   const leaves: THREE.BufferGeometry[] = [];
   const centreY = 4.8;
   for (let i = 0; i < 600; i++) {
-    // Uniform random point in a sphere (reject method for even distribution).
     let lx: number, ly: number, lz: number;
     do {
       lx = (Math.random() * 2 - 1) * 2.6;
       ly = (Math.random() * 2 - 1) * 1.8;
       lz = (Math.random() * 2 - 1) * 2.6;
     } while (lx * lx / 6.76 + ly * ly / 3.24 + lz * lz / 6.76 > 1);
-    const size = 0.6 + Math.random() * 0.6;
-    const leaf = new THREE.PlaneGeometry(size, size);
+    const size = 0.4 + Math.random() * 0.35;
+    const leaf = new THREE.CircleGeometry(size, 6); // hexagonal disc
     leaf.rotateX(Math.random() * Math.PI);
     leaf.rotateY(Math.random() * Math.PI * 2);
     leaf.rotateZ(Math.random() * Math.PI * 0.5);
@@ -222,7 +229,7 @@ const FLOWER_GEO = (() => {
   parts.push(centre);
   return BufferGeometryUtils.mergeGeometries(parts, false);
 })();
-const FLOWER_COLORS = [0xff6688, 0xffdd44, 0xaa55ff, 0xff8833, 0x66ccff];
+const FLOWER_COLORS = [0xff6688, 0xffdd44, 0xaa55ff, 0xff8833, 0x66ccff, 0xff4466, 0xffaa00, 0xcc77ff, 0xff5566, 0x88ddaa];
 const FLOWER_MATS = FLOWER_COLORS.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 }));
 
 // Loose decorative rock + collidable stone share an icosahedron.
@@ -245,11 +252,11 @@ function makeRng(seed: number): () => number {
 
 /** Per-biome decoration densities (counts per chunk). */
 const DENSITY: Record<Biome, { grass: number; trees: number; rocks: number; stones: number; flowers: number }> = {
-  grassland: { grass: 2000, trees: 5, rocks: 8, stones: 1, flowers: 40 },
-  forest: { grass: 1500, trees: 26, rocks: 10, stones: 2, flowers: 20 },
-  desert: { grass: 10, trees: 3, rocks: 6, stones: 2, flowers: 8 },
-  rocky: { grass: 200, trees: 2, rocks: 44, stones: 5, flowers: 6 },
-  snow: { grass: 100, trees: 7, rocks: 16, stones: 2, flowers: 3 },
+  grassland: { grass: 8000, trees: 5, rocks: 8, stones: 1, flowers: 50 },
+  forest: { grass: 6000, trees: 26, rocks: 10, stones: 2, flowers: 30 },
+  desert: { grass: 50, trees: 3, rocks: 6, stones: 2, flowers: 12 },
+  rocky: { grass: 800, trees: 2, rocks: 44, stones: 5, flowers: 8 },
+  snow: { grass: 400, trees: 7, rocks: 16, stones: 2, flowers: 4 },
 };
 
 export class ChunkManager {
@@ -302,7 +309,7 @@ export class ChunkManager {
     const group = new THREE.Group();
     group.name = `chunk_${key}`;
 
-    const terrainMat = TERRAIN_MAT(biome);
+    const terrainMat = TERRAIN_MAT();
     const mesh = new THREE.Mesh(geometry, terrainMat);
     mesh.position.set(centerX, 0, centerZ);
     mesh.receiveShadow = true;
@@ -351,12 +358,19 @@ export class ChunkManager {
     const half = CHUNK_SIZE / 2;
     const rand = () => (rng() * 2 - 1) * half;
 
-    this.scatter(group, instanced, GRASS_GEO, GRASS_MAT, d.grass, centerX, centerZ, rand, rng, {
-      yawOnly: true,
-      minScale: 0.6,
-      maxScale: 1.5,
-      maxSlope: 24,
-    });
+    // Grass: scatter multiple variants with different geo/material combos.
+    const grassPerVariant = Math.ceil(d.grass / GRASS_VARIANTS.length);
+    for (let v = 0; v < GRASS_VARIANTS.length; v++) {
+      const geoV = GRASS_VARIANTS[v];
+      const matV = GRASS_MATS[v % GRASS_MATS.length];
+      if (!geoV || !matV) continue;
+      this.scatter(group, instanced, geoV, matV, grassPerVariant, centerX, centerZ, rand, rng, {
+        yawOnly: true,
+        minScale: 0.5 + v * 0.15,
+        maxScale: 1.2 + v * 0.2,
+        maxSlope: 28,
+      });
+    }
 
     // Trees are placed individually (not instanced) so each can have its own
     // physics collider and be uprooted independently.

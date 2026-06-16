@@ -148,8 +148,8 @@ describe('Hud', () => {
     expect(readout.classList.contains('hud-hidden')).toBe(false);
 
     expect(mount.find('hud-fuel-value')!.textContent).toBe('73');
-    // 73/200 * 100 = 36.5%
-    expect(mount.find('hud-fuel-bar-fill')!.style.width).toBe('18.25%');
+    // 73/1000 * 100 = 7.3%
+    expect(mount.find('hud-fuel-bar-fill')!.style.width).toBe('7.3%');
     expect(mount.find('hud-distance')!.textContent).toBe('12.3 m');
     expect(mount.find('hud-status')!.textContent).toBe('running');
 
@@ -164,7 +164,7 @@ describe('Hud', () => {
     hud.update(view({ fuelInt: 0 }));
     expect(mount.find('hud-fuel-bar-fill')!.style.width).toBe('0%');
 
-    hud.update(view({ fuelInt: 500 }));
+    hud.update(view({ fuelInt: 1200 }));
     expect(mount.find('hud-fuel-bar-fill')!.style.width).toBe('100%');
   });
 

@@ -18,7 +18,7 @@ export const FIXED_DT = 1 / 60;
 // ---------------------------------------------------------------------------
 
 /** Starting fuel level for a fresh run. (Req 7.1) */
-export const START_FUEL = 400;
+export const START_FUEL = 1000;
 
 /** Fuel units consumed per second at throttle 1.0. (Req 7.2) */
 export const FUEL_BURN_RATE = 5;

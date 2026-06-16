@@ -145,39 +145,36 @@ const _cScratch = new THREE.Color();
 
 const _cBlend = new THREE.Color();
 
-/** Resolve a vertex colour with smooth biome transition blending. */
+/** Resolve a vertex colour with wide smooth biome transition blending. */
 function vertexColor(x: number, z: number, slopeDeg: number, jitter: number, target: THREE.Color): void {
-  // Use the raw biome parameter to blend between adjacent biome colors
-  // at transition zones instead of hard-cutting.
   const t = biomeParam(x, z);
 
-  // Blend regions: each biome boundary gets a smooth lerp zone.
-  if (t < 0.22) {
+  // Wide blend zones (15% overlap) so transitions are gradual, not abrupt.
+  if (t < 0.15) {
     target.copy(BIOME_COLOR.grassland);
-  } else if (t < 0.28) {
-    // Grassland → forest transition.
-    const blend = (t - 0.22) / 0.06;
+  } else if (t < 0.30) {
+    const blend = (t - 0.15) / 0.15;
     target.copy(BIOME_COLOR.grassland).lerp(_cBlend.copy(BIOME_COLOR.forest), blend);
-  } else if (t < 0.42) {
+  } else if (t < 0.38) {
     target.copy(BIOME_COLOR.forest);
-  } else if (t < 0.48) {
-    const blend = (t - 0.42) / 0.06;
+  } else if (t < 0.52) {
+    const blend = (t - 0.38) / 0.14;
     target.copy(BIOME_COLOR.forest).lerp(_cBlend.copy(BIOME_COLOR.desert), blend);
   } else if (t < 0.58) {
     target.copy(BIOME_COLOR.desert);
-  } else if (t < 0.64) {
-    const blend = (t - 0.58) / 0.06;
+  } else if (t < 0.72) {
+    const blend = (t - 0.58) / 0.14;
     target.copy(BIOME_COLOR.desert).lerp(_cBlend.copy(BIOME_COLOR.rocky), blend);
   } else if (t < 0.78) {
     target.copy(BIOME_COLOR.rocky);
-  } else if (t < 0.84) {
-    const blend = (t - 0.78) / 0.06;
+  } else if (t < 0.92) {
+    const blend = (t - 0.78) / 0.14;
     target.copy(BIOME_COLOR.rocky).lerp(_cBlend.copy(BIOME_COLOR.snow), blend);
   } else {
     target.copy(BIOME_COLOR.snow);
   }
 
-  // Steep faces show bare rock regardless of biome.
+  // Steep faces show bare rock.
   const b = biomeAt(x, z);
   if (slopeDeg > 30 && b !== 'snow') {
     target.lerp(C_ROCK, Math.min(1, (slopeDeg - 30) / 15));

@@ -475,7 +475,7 @@ export class GameLoop {
       playPickup();
       this.run = {
         ...this.run,
-        fuel: Math.min(400, this.run.fuel + this.fuelPickupSource.lastCollectedFuel),
+        fuel: Math.min(1000, this.run.fuel + this.fuelPickupSource.lastCollectedFuel),
       };
     }
     this.hud.update(toHudView(this.run));
