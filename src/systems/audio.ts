@@ -36,35 +36,74 @@ export function resumeAudio(): void {
   }
 }
 
-// --- Engine loop (continuous, pitch varies with speed) ---
+// --- Engine loop (continuous, multi-oscillator for a meaty motor sound) ---
 
 function startEngine(): void {
   if (!ctx || !masterGain) return;
   engineGain = ctx.createGain();
-  engineGain.gain.value = 0.08;
+  engineGain.gain.value = 0.06;
   engineGain.connect(masterGain);
 
+  // Layer 1: low-frequency rumble (square wave, gives the "chug").
   engineOsc = ctx.createOscillator();
-  engineOsc.type = 'sawtooth';
-  engineOsc.frequency.value = 60;
-  engineOsc.connect(engineGain);
+  engineOsc.type = 'square';
+  engineOsc.frequency.value = 28;
+
+  // Layer 2: mid harmonic (triangle, adds body without buzz).
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'triangle';
+  osc2.frequency.value = 56;
+
+  // Layer 3: upper harmonic crackle (sawtooth, very quiet).
+  const osc3 = ctx.createOscillator();
+  osc3.type = 'sawtooth';
+  osc3.frequency.value = 84;
+  const osc3Gain = ctx.createGain();
+  osc3Gain.gain.value = 0.15; // much quieter than the fundamentals
+
+  // Low-pass filter on the mix to cut the harsh highs (no buzzy fly sound).
+  const lpf = ctx.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.value = 250;
+  lpf.Q.value = 1.5;
+
+  engineOsc.connect(lpf);
+  osc2.connect(lpf);
+  osc3.connect(osc3Gain).connect(lpf);
+  lpf.connect(engineGain);
+
   engineOsc.start();
+  osc2.start();
+  osc3.start();
+
+  // Store extras so we can update their frequencies.
+  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._osc2 = osc2;
+  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._osc3 = osc3;
+  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._lpf = lpf;
 }
 
 /**
  * Update the engine sound based on throttle and speed. Call every frame.
- *
- * @param throttle 0..1
- * @param speed m/s (absolute)
+ * The sound is a deep rumble at idle that rises in pitch + volume with RPM.
  */
 export function updateEngineSound(throttle: number, speed: number): void {
   if (!engineOsc || !engineGain || !ctx) return;
-  // Pitch rises with speed (idle ~60 Hz, top ~220 Hz).
-  const freq = 60 + Math.min(speed, 30) * 5 + throttle * 40;
-  engineOsc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.05);
-  // Volume rises with throttle.
-  const vol = 0.04 + throttle * 0.12;
-  engineGain.gain.setTargetAtTime(vol, ctx.currentTime, 0.05);
+
+  // Simulate RPM from speed (idle ~28 Hz fundamental, redline ~90 Hz).
+  const rpm = 28 + Math.min(speed, 25) * 2.5 + throttle * 15;
+
+  engineOsc.frequency.setTargetAtTime(rpm, ctx.currentTime, 0.08);
+
+  const extras = engineOsc as unknown as { _osc2?: OscillatorNode; _osc3?: OscillatorNode; _lpf?: BiquadFilterNode };
+  if (extras._osc2) extras._osc2.frequency.setTargetAtTime(rpm * 2, ctx.currentTime, 0.08);
+  if (extras._osc3) extras._osc3.frequency.setTargetAtTime(rpm * 3, ctx.currentTime, 0.08);
+
+  // Open the filter with RPM so higher revs sound brighter (but never harsh).
+  if (extras._lpf) extras._lpf.frequency.setTargetAtTime(180 + rpm * 2.5, ctx.currentTime, 0.08);
+
+  // Volume: louder under throttle, quiet at idle.
+  const vol = 0.03 + throttle * 0.09 + Math.min(speed, 20) * 0.003;
+  engineGain.gain.setTargetAtTime(vol, ctx.currentTime, 0.06);
 }
 
 // --- One-shot effects ---
