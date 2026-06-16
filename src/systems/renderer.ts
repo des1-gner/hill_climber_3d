@@ -213,28 +213,37 @@ export class Renderer {
     const height = canvas.clientHeight || canvas.height || 1;
 
     this.scene = new THREE.Scene();
-    // Sky: gradient from blue to light blue at horizon.
-    this.scene.background = new THREE.Color(0x87ceeb);
+    // Sky: gradient from deep blue at zenith to warm horizon.
+    this.scene.background = new THREE.Color(0x6eb5e8);
     // Distance fog blends the far edges of the big map into the sky.
-    this.scene.fog = new THREE.Fog(0x87ceeb, 220, 900);
+    this.scene.fog = new THREE.Fog(0x9ecfec, 180, 800);
 
     // Sun (a bright sphere in the sky for visual reference).
-    const sunGeo = new THREE.SphereGeometry(8, 16, 12);
+    const sunGeo = new THREE.SphereGeometry(10, 16, 12);
     const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffd0 });
     const sun = new THREE.Mesh(sunGeo, sunMat);
     sun.position.set(200, 350, 300);
     this.scene.add(sun);
 
-    // Clouds: a scattering of semi-transparent ellipsoids at high altitude.
-    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
-    for (let i = 0; i < 30; i++) {
-      const cg = new THREE.SphereGeometry(12 + Math.random() * 20, 8, 6);
-      const cloud = new THREE.Mesh(cg, cloudMat);
-      cloud.scale.set(1 + Math.random() * 2, 0.4 + Math.random() * 0.3, 1 + Math.random());
+    // Sun glow halo.
+    const glowGeo = new THREE.SphereGeometry(22, 12, 10);
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 0.15 });
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.copy(sun.position);
+    this.scene.add(glow);
+
+    // Clouds: many semi-transparent ellipsoids at varying altitudes and sizes.
+    const cloudColors = [0xffffff, 0xf8f8ff, 0xeeeef5];
+    for (let i = 0; i < 80; i++) {
+      const color = cloudColors[i % cloudColors.length] ?? 0xffffff;
+      const cg = new THREE.SphereGeometry(10 + Math.random() * 25, 8, 6);
+      const cm = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 + Math.random() * 0.3 });
+      const cloud = new THREE.Mesh(cg, cm);
+      cloud.scale.set(1.5 + Math.random() * 3, 0.3 + Math.random() * 0.4, 1 + Math.random() * 1.5);
       cloud.position.set(
-        (Math.random() - 0.5) * 800,
-        180 + Math.random() * 80,
-        (Math.random() - 0.5) * 800,
+        (Math.random() - 0.5) * 1200,
+        140 + Math.random() * 120,
+        (Math.random() - 0.5) * 1200,
       );
       this.scene.add(cloud);
     }

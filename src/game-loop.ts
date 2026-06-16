@@ -424,8 +424,7 @@ export class GameLoop {
     // Audio: engine loop tracks throttle + speed.
     updateEngineSound(this.command.throttle, this.curr.horizontalSpeed);
 
-    // 4b. Checkpoint progression: advance against the car position, move the
-    // beacon when one is reached, and feed the HUD's objective readout.
+    // 4b. Checkpoint progression + boost pads.
     if (this.objective) {
       const carPos = this.curr.chassisPosition;
       if (this.objective.update(carPos)) {
@@ -436,6 +435,13 @@ export class GameLoop {
         this.objective.getReachedCount(),
         this.objective.distanceTo(carPos),
       );
+    }
+
+    // Boost pad: apply a forward speed burst when driving over one.
+    if (this.chunks && this.chunks.isOnBoostPad(this.curr.chassisPosition)) {
+      const speed = this.curr.linearSpeed;
+      const boostDir = speed >= 0 ? 1 : -1;
+      this.physics.applyChassisImpulse({ x: 0, y: 800, z: boostDir * 8000 });
     }
 
     // 4c. Tree and stone collision detection + damage + uprooting.

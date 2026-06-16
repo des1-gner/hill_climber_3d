@@ -461,6 +461,44 @@ export class ChunkManager {
         }
       }
     }
+
+    // Ramp: angled platform (30% chance per chunk on gentle ground).
+    if (rng() > 0.7) {
+      const rx = centerX + rand();
+      const rz = centerZ + rand();
+      if (terrainSlopeDegrees(rx, rz) < 15) {
+        const ry = terrainElevation(rx, rz);
+        const rampGeo = new THREE.BoxGeometry(3.5, 0.15, 5, 6, 2, 8);
+        const rampMat = new THREE.MeshStandardMaterial({ color: 0xff8800, roughness: 0.7, metalness: 0.3 });
+        const ramp = new THREE.Mesh(rampGeo, rampMat);
+        ramp.position.set(rx, ry + 0.6, rz);
+        ramp.rotation.x = -0.3; // angled upward
+        ramp.rotation.y = rng() * Math.PI * 2;
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
+        group.add(ramp);
+        // Physics collider for the ramp.
+        stoneIds.push(this.physics.addStaticBoulder({ x: rx, y: ry + 0.6, z: rz }, 2.0, 0.5));
+      }
+    }
+
+    // Power boost pad (20% chance, gives a speed burst when driven over).
+    if (rng() > 0.8) {
+      const bx = centerX + rand();
+      const bz = centerZ + rand();
+      if (terrainSlopeDegrees(bx, bz) < 12) {
+        const by = terrainElevation(bx, bz) + 0.05;
+        const boostGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.1, 16);
+        const boostMat = new THREE.MeshStandardMaterial({
+          color: 0x00ffaa, emissive: 0x00ff88, emissiveIntensity: 0.8,
+          roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.7,
+        });
+        const boost = new THREE.Mesh(boostGeo, boostMat);
+        boost.position.set(bx, by, bz);
+        boost.name = 'boost_pad';
+        group.add(boost);
+      }
+    }
   }
 
   /** Place `count` instances of a shared geo/mat across the chunk on the surface. */
@@ -624,5 +662,19 @@ export class ChunkManager {
     this.physics.removeStaticBody(tree.bodyId);
     chunk.group.remove(tree.mesh);
     chunk.trees.splice(idx, 1);
+  }
+
+  /** Check if there's a boost pad near `pos` (within 2.5m). */
+  isOnBoostPad(pos: Vec3): boolean {
+    for (const [, chunk] of this.chunks) {
+      for (const child of chunk.group.children) {
+        if (child.name === 'boost_pad') {
+          const dx = pos.x - child.position.x;
+          const dz = pos.z - child.position.z;
+          if (Math.hypot(dx, dz) < 2.5) return true;
+        }
+      }
+    }
+    return false;
   }
 }
