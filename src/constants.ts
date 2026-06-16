@@ -18,7 +18,7 @@ export const FIXED_DT = 1 / 60;
 // ---------------------------------------------------------------------------
 
 /** Starting fuel level for a fresh run. (Req 7.1) */
-export const START_FUEL = 100;
+export const START_FUEL = 200;
 
 /** Fuel units consumed per second at throttle 1.0. (Req 7.2) */
 export const FUEL_BURN_RATE = 5;
@@ -68,7 +68,7 @@ export const DEFAULT_TERRAIN_FRICTION = 1.0;
 export const REVERSE_SPEED_THRESHOLD = 1.0;
 
 /** Reverse engine force as a fraction of the configured forward maximum. */
-export const REVERSE_FORCE_SCALE = 0.6;
+export const REVERSE_FORCE_SCALE = 0.8;
 
 // ---------------------------------------------------------------------------
 // Steering (Req 2, 5)

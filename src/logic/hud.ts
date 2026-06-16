@@ -39,9 +39,9 @@ import type { HudView, RunState } from '../types';
  * Requirements: 7.5, 9.3
  */
 export function toHudView(run: RunState): HudView {
-  // Fuel: round to integer, then clamp to [0, 100] (Req 7.5).
+  // Fuel: round to integer, then clamp to [0, 200] for the new doubled capacity.
   const roundedFuel = Math.round(run.fuel);
-  const fuelInt = roundedFuel < 0 ? 0 : roundedFuel > 100 ? 100 : roundedFuel;
+  const fuelInt = roundedFuel < 0 ? 0 : roundedFuel > 200 ? 200 : roundedFuel;
 
   // Distance: round to nearest 0.1 m, format to one decimal place (Req 9.3).
   const roundedDistance = Math.round(run.distanceTraveled * 10) / 10;

@@ -41,12 +41,12 @@ function endReasonLabel(reason: EndReason | null): string {
   return 'Run over';
 }
 
-/** Clamp a fuel integer into the displayable [0, 100] range for the bar width. */
+/** Clamp a fuel integer into the displayable range for the bar width. */
 function fuelBarPercent(fuelInt: number): number {
   if (!Number.isFinite(fuelInt)) return 0;
   if (fuelInt < 0) return 0;
-  if (fuelInt > 100) return 100;
-  return fuelInt;
+  if (fuelInt > 200) return 100;
+  return (fuelInt / 200) * 100;
 }
 
 const STYLE_ELEMENT_ID = 'hud-style';

@@ -49,21 +49,19 @@ const runStateArb: fc.Arbitrary<RunState> = fc.record({
 describe('toHudView — property-based', () => {
   // Feature: 3d-car-hill-climb, Property 13: HUD projection bounds fuel and rounds distance
   // Validates: Requirements 7.5, 9.3
-  it('produces an integer fuelInt within [0, 100] equal to round(fuel) clamped', () => {
+  it('produces an integer fuelInt within [0, 200] equal to round(fuel) clamped', () => {
     fc.assert(
       fc.property(runStateArb, (run) => {
         const view = toHudView(run);
 
-        // Integer (Req 7.5).
+        // Integer.
         expect(Number.isInteger(view.fuelInt)).toBe(true);
 
-        // Within inclusive [0, 100] (Req 7.5).
+        // Within inclusive [0, 200].
         expect(view.fuelInt).toBeGreaterThanOrEqual(0);
-        expect(view.fuelInt).toBeLessThanOrEqual(100);
+        expect(view.fuelInt).toBeLessThanOrEqual(200);
 
-        // Equals round(fuel) clamped to [0, 100]. Add 0 to normalize the
-        // harmless -0/+0 distinction (both are numerically equal to 0).
-        const expected = Math.min(100, Math.max(0, Math.round(run.fuel)));
+        const expected = Math.min(200, Math.max(0, Math.round(run.fuel)));
         expect(view.fuelInt + 0).toBe(expected + 0);
       }),
       { numRuns: NUM_RUNS },

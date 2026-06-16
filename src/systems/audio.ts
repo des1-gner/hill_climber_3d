@@ -44,66 +44,106 @@ function startEngine(): void {
   engineGain.gain.value = 0.06;
   engineGain.connect(masterGain);
 
-  // Layer 1: low-frequency rumble (square wave, gives the "chug").
+  // Layer 1: very low fundamental rumble (custom periodic wave for asymmetric
+  // combustion pulse rather than a pure tone).
   engineOsc = ctx.createOscillator();
-  engineOsc.type = 'square';
-  engineOsc.frequency.value = 28;
+  const real = new Float32Array([0, 1, 0.6, 0.3, 0.15, 0.08]);
+  const imag = new Float32Array(real.length);
+  const customWave = ctx.createPeriodicWave(real, imag);
+  engineOsc.setPeriodicWave(customWave);
+  engineOsc.frequency.value = 22;
 
-  // Layer 2: mid harmonic (triangle, adds body without buzz).
+  // Layer 2: sub-harmonic throb (adds chest-punch at low RPM).
   const osc2 = ctx.createOscillator();
-  osc2.type = 'triangle';
-  osc2.frequency.value = 56;
+  osc2.type = 'sine';
+  osc2.frequency.value = 11;
 
-  // Layer 3: upper harmonic crackle (sawtooth, very quiet).
+  // Layer 3: mid growl with slight detune for width/variation.
   const osc3 = ctx.createOscillator();
-  osc3.type = 'sawtooth';
-  osc3.frequency.value = 84;
-  const osc3Gain = ctx.createGain();
-  osc3Gain.gain.value = 0.15; // much quieter than the fundamentals
+  osc3.type = 'triangle';
+  osc3.frequency.value = 44;
+  osc3.detune.value = 7; // slight detune = organic variation
 
-  // Low-pass filter on the mix to cut the harsh highs (no buzzy fly sound).
+  // Layer 4: noise-modulated crackle for exhaust texture.
+  const noiseLen = ctx.sampleRate * 2;
+  const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+  const noiseData = noiseBuf.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) noiseData[i] = (Math.random() * 2 - 1);
+  const noiseSrc = ctx.createBufferSource();
+  noiseSrc.buffer = noiseBuf;
+  noiseSrc.loop = true;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.value = 0.012;
+
+  // Band-pass the noise around the engine frequency for exhaust pop character.
+  const noiseBP = ctx.createBiquadFilter();
+  noiseBP.type = 'bandpass';
+  noiseBP.frequency.value = 120;
+  noiseBP.Q.value = 0.8;
+
+  // Master low-pass: cuts all harsh highs (kills the fly/buzz sound).
   const lpf = ctx.createBiquadFilter();
   lpf.type = 'lowpass';
-  lpf.frequency.value = 250;
-  lpf.Q.value = 1.5;
+  lpf.frequency.value = 200;
+  lpf.Q.value = 1.2;
+
+  // Gain staging.
+  const osc2Gain = ctx.createGain();
+  osc2Gain.gain.value = 0.4;
+  const osc3Gain = ctx.createGain();
+  osc3Gain.gain.value = 0.2;
 
   engineOsc.connect(lpf);
-  osc2.connect(lpf);
+  osc2.connect(osc2Gain).connect(lpf);
   osc3.connect(osc3Gain).connect(lpf);
+  noiseSrc.connect(noiseBP).connect(noiseGain).connect(lpf);
   lpf.connect(engineGain);
 
   engineOsc.start();
   osc2.start();
   osc3.start();
+  noiseSrc.start();
 
-  // Store extras so we can update their frequencies.
-  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._osc2 = osc2;
-  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._osc3 = osc3;
-  (engineOsc as unknown as { _osc2: OscillatorNode; _osc3: OscillatorNode; _lpf: BiquadFilterNode })._lpf = lpf;
+  // Store extras for per-frame frequency updates.
+  (engineOsc as unknown as Record<string, unknown>)._osc2 = osc2;
+  (engineOsc as unknown as Record<string, unknown>)._osc3 = osc3;
+  (engineOsc as unknown as Record<string, unknown>)._lpf = lpf;
+  (engineOsc as unknown as Record<string, unknown>)._noiseBP = noiseBP;
+  (engineOsc as unknown as Record<string, unknown>)._noiseGain = noiseGain;
 }
 
 /**
  * Update the engine sound based on throttle and speed. Call every frame.
- * The sound is a deep rumble at idle that rises in pitch + volume with RPM.
+ * Deep idle rumble → throaty mid-range → growling top end.
  */
 export function updateEngineSound(throttle: number, speed: number): void {
   if (!engineOsc || !engineGain || !ctx) return;
 
-  // Simulate RPM from speed (idle ~28 Hz fundamental, redline ~90 Hz).
-  const rpm = 28 + Math.min(speed, 25) * 2.5 + throttle * 15;
+  // Simulate RPM: idle ~22 Hz fundamental, redline ~75 Hz.
+  const rpm = 22 + Math.min(speed, 28) * 1.8 + throttle * 12;
 
-  engineOsc.frequency.setTargetAtTime(rpm, ctx.currentTime, 0.08);
+  engineOsc.frequency.setTargetAtTime(rpm, ctx.currentTime, 0.1);
 
-  const extras = engineOsc as unknown as { _osc2?: OscillatorNode; _osc3?: OscillatorNode; _lpf?: BiquadFilterNode };
-  if (extras._osc2) extras._osc2.frequency.setTargetAtTime(rpm * 2, ctx.currentTime, 0.08);
-  if (extras._osc3) extras._osc3.frequency.setTargetAtTime(rpm * 3, ctx.currentTime, 0.08);
+  const extras = engineOsc as unknown as Record<string, unknown>;
+  const osc2 = extras._osc2 as OscillatorNode | undefined;
+  const osc3 = extras._osc3 as OscillatorNode | undefined;
+  const lpf = extras._lpf as BiquadFilterNode | undefined;
+  const noiseBP = extras._noiseBP as BiquadFilterNode | undefined;
+  const noiseGain = extras._noiseGain as GainNode | undefined;
 
-  // Open the filter with RPM so higher revs sound brighter (but never harsh).
-  if (extras._lpf) extras._lpf.frequency.setTargetAtTime(180 + rpm * 2.5, ctx.currentTime, 0.08);
+  if (osc2) osc2.frequency.setTargetAtTime(rpm * 0.5, ctx.currentTime, 0.1);
+  if (osc3) osc3.frequency.setTargetAtTime(rpm * 2, ctx.currentTime, 0.1);
 
-  // Volume: louder under throttle, quiet at idle.
-  const vol = 0.03 + throttle * 0.09 + Math.min(speed, 20) * 0.003;
-  engineGain.gain.setTargetAtTime(vol, ctx.currentTime, 0.06);
+  // Filter opens with RPM — brighter at higher revs but still capped low.
+  if (lpf) lpf.frequency.setTargetAtTime(140 + rpm * 2, ctx.currentTime, 0.1);
+  // Noise band follows RPM for exhaust crackle at all speeds.
+  if (noiseBP) noiseBP.frequency.setTargetAtTime(rpm * 3, ctx.currentTime, 0.1);
+  // More exhaust crackle under throttle.
+  if (noiseGain) noiseGain.gain.setTargetAtTime(0.008 + throttle * 0.02, ctx.currentTime, 0.08);
+
+  // Volume: louder under throttle, quiet rumble at idle.
+  const vol = 0.025 + throttle * 0.08 + Math.min(speed, 22) * 0.002;
+  engineGain.gain.setTargetAtTime(vol, ctx.currentTime, 0.08);
 }
 
 // --- One-shot effects ---
