@@ -247,6 +247,71 @@ export function playCreatureHit(): void {
   osc.stop(ctx.currentTime + 0.25);
 }
 
+/** Jeep suspension jump — springy boing. */
+export function playJumpBoing(): void {
+  if (!ctx || !masterGain) return;
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 150;
+  osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.3, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+  osc.connect(g).connect(masterGain);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.35);
+}
+
+/** Rally nitro boost — whoosh/roar. */
+export function playNitro(): void {
+  if (!ctx || !masterGain) return;
+  const bufSize = Math.ceil(ctx.sampleRate * 0.6);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 200;
+  bp.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.4);
+  bp.Q.value = 1.5;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.35, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+  src.connect(bp).connect(g).connect(masterGain);
+  src.start();
+}
+
+/** Sports car glide/wings — airy whoosh. */
+export function playGlideActivate(): void {
+  if (!ctx || !masterGain) return;
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 400;
+  osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.5);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.2, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+  osc.connect(g).connect(masterGain);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.9);
+  const bufSize = Math.ceil(ctx.sampleRate * 0.8);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 2000;
+  const gn = ctx.createGain();
+  gn.gain.setValueAtTime(0.12, ctx.currentTime);
+  gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+  src.connect(hp).connect(gn).connect(masterGain);
+  src.start();
+}
+
 /** Checkpoint reached chime. */
 export function playCheckpoint(): void {
   if (!ctx || !masterGain) return;

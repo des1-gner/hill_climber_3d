@@ -45,7 +45,7 @@ import {
 } from './logic/run-lifecycle';
 import { toHudView } from './logic/hud';
 import { applyImpact, type DamageState } from './systems/damage';
-import { updateEngineSound, playCrash, playGlassShatter, playTreeCrack, playPickup, playCheckpoint } from './systems/audio';
+import { updateEngineSound, playCrash, playGlassShatter, playTreeCrack, playPickup, playCheckpoint, playJumpBoing, playNitro, playGlideActivate } from './systems/audio';
 
 import type { RapierPhysicsEngine } from './systems/physics-engine';
 import type { Renderer } from './systems/renderer';
@@ -421,27 +421,36 @@ export class GameLoop {
       if (this.carType === 'jeep') {
         // Jeep: suspension jump — big upward impulse.
         this.physics.applyChassisImpulse({ x: 0, y: 18000, z: 0 });
+        playJumpBoing();
         this.specialCooldown = 2.0;
       } else if (this.carType === 'rally') {
         // Rally: nitro boost — massive forward impulse.
         this.physics.applyChassisImpulse({ x: 0, y: 0, z: 15000 });
+        playNitro();
         this.specialCooldown = 3.0;
       } else if (this.carType === 'sports') {
         // Sports: activate wings — glide (reduced gravity) for 3 seconds.
         this.gliding = true;
         this.glideTimer = 3.0;
+        playGlideActivate();
         this.specialCooldown = 5.0;
       }
     }
 
-    // Sports car glide: counteract most of gravity while active.
+    // Sports car glide: gently counteract gravity so the car floats down slowly
+    // instead of rocketing up. Also allow air steering via lateral impulses.
     if (this.gliding) {
       this.glideTimer -= elapsedSeconds;
       if (this.glideTimer <= 0) {
         this.gliding = false;
       } else {
-        // Push up to counteract ~80% of gravity (soft landing).
-        this.physics.applyChassisImpulse({ x: 0, y: 700, z: 0 });
+        // Counteract ~70% of gravity (gentle float, not flight).
+        this.physics.applyChassisImpulse({ x: 0, y: 140, z: 0 });
+        // Air steering: apply lateral impulse from the current steering input.
+        const cmd = this.command;
+        if (Math.abs(cmd.steerDeg) > 1) {
+          this.physics.applyChassisImpulse({ x: cmd.steerDeg * 25, y: 0, z: 0 });
+        }
       }
     }
 
