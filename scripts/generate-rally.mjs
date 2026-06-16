@@ -119,43 +119,44 @@ function buildChassis() {
   const chassis = new THREE.Group();
   chassis.name = CHASSIS_NODE;
 
-  // Main hull — rounded by using very high segments so env map smooths it.
-  addPart(chassis, new THREE.BoxGeometry(2.2, 0.7, 4.4, 48, 24, 72), M.paint, [0, 0.1, 0]);
-  // Lower rocker / skirt (rounded edges).
-  addPart(chassis, new THREE.BoxGeometry(2.06, 0.3, 4.0, 20, 8, 48), M.trim, [0, -0.4, 0]);
-  // Cabin / greenhouse — using a capsule-like shape (rounded box via high segments).
-  addPart(chassis, new THREE.BoxGeometry(1.9, 0.6, 2.2, 36, 18, 38), M.paint, [0, 0.92, -0.25]);
+  // --- RALLY CAR BODY ---
+  // Main hull — lower (0.7m) and wider (2.2m) than the standard jeep.
+  addPart(chassis, new THREE.BoxGeometry(2.2, 0.7, 4.4, 48, 24, 72), M.paint, [0, 0.05, 0]);
+  // Lower rocker / skirt.
+  addPart(chassis, new THREE.BoxGeometry(2.16, 0.28, 4.0, 20, 8, 48), M.trim, [0, -0.38, 0]);
+  // Cabin / greenhouse — lower and more raked than the jeep.
+  addPart(chassis, new THREE.BoxGeometry(1.9, 0.55, 2.0, 36, 18, 38), M.paint, [0, 0.82, -0.2]);
   // Flat roof cap.
-  addPart(chassis, new THREE.BoxGeometry(1.82, 0.1, 2.16, 24, 4, 26), M.trim, [0, 1.3, -0.25]);
+  addPart(chassis, new THREE.BoxGeometry(1.82, 0.08, 2.0, 24, 4, 26), M.trim, [0, 1.16, -0.2]);
   // Hood (slightly rounded).
-  addPart(chassis, new THREE.BoxGeometry(1.88, 0.14, 1.5, 32, 8, 28), M.paint, [0, 0.56, 1.35]);
+  addPart(chassis, new THREE.BoxGeometry(2.0, 0.12, 1.5, 32, 8, 28), M.paint, [0, 0.48, 1.35]);
 
-  // --- 7-slot jeep grille ---
-  addPart(chassis, new THREE.BoxGeometry(1.6, 0.62, 0.12, 8, 8, 2), M.plastic, [0, 0.28, 2.12]);
+  // --- 7-slot grille (rally cars keep the iconic look) ---
+  addPart(chassis, new THREE.BoxGeometry(1.7, 0.55, 0.12, 8, 8, 2), M.plastic, [0, 0.22, 2.12]);
   for (let i = 0; i < 7; i += 1) {
     const x = -0.66 + i * 0.22;
-    addPart(chassis, new THREE.BoxGeometry(0.12, 0.5, 0.16, 3, 8, 3), M.chrome, [x, 0.28, 2.15]);
+    addPart(chassis, new THREE.BoxGeometry(0.12, 0.44, 0.16, 3, 8, 3), M.chrome, [x, 0.22, 2.15]);
   }
 
   // --- Bumpers ---
-  addPart(chassis, new THREE.BoxGeometry(2.1, 0.3, 0.34, 20, 6, 6), M.plastic, [0, -0.12, 2.16]);
-  addPart(chassis, new THREE.BoxGeometry(2.1, 0.3, 0.34, 20, 6, 6), M.plastic, [0, -0.12, -2.16]);
+  addPart(chassis, new THREE.BoxGeometry(2.2, 0.26, 0.32, 20, 6, 6), M.plastic, [0, -0.16, 2.16]);
+  addPart(chassis, new THREE.BoxGeometry(2.2, 0.26, 0.32, 20, 6, 6), M.plastic, [0, -0.16, -2.16]);
 
   // --- Lights ---
   // Round headlights.
   const headGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.12, 24, 2);
-  addPart(chassis, headGeo, M.headlight, [-0.62, 0.34, 2.18], [Math.PI / 2, 0, 0]);
-  addPart(chassis, headGeo, M.headlight, [0.62, 0.34, 2.18], [Math.PI / 2, 0, 0]);
+  addPart(chassis, headGeo, M.headlight, [-0.68, 0.28, 2.18], [Math.PI / 2, 0, 0]);
+  addPart(chassis, headGeo, M.headlight, [0.68, 0.28, 2.18], [Math.PI / 2, 0, 0]);
   // Rectangular tail lights.
-  const tailGeo = new THREE.BoxGeometry(0.26, 0.36, 0.1, 4, 6, 2);
-  addPart(chassis, tailGeo, M.taillight, [-0.74, 0.36, -2.16]);
-  addPart(chassis, tailGeo, M.taillight, [0.74, 0.36, -2.16]);
+  const tailGeo = new THREE.BoxGeometry(0.26, 0.32, 0.1, 4, 6, 2);
+  addPart(chassis, tailGeo, M.taillight, [-0.8, 0.28, -2.16]);
+  addPart(chassis, tailGeo, M.taillight, [0.8, 0.28, -2.16]);
 
-  // --- Side mirrors (stalk + reflective face) — named for detachment on impact ---
-  for (const [sx, side] of [[-1.04, 'left'], [1.04, 'right']]) {
+  // --- Side mirrors (stalk + reflective face) ---
+  for (const [sx, side] of [[-1.14, 'left'], [1.14, 'right']]) {
     const mirrorGroup = new THREE.Group();
     mirrorGroup.name = `mirror_${side}`;
-    mirrorGroup.position.set(sx, 0.72, 1.06);
+    mirrorGroup.position.set(sx, 0.68, 1.0);
     const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.05, 4, 2, 2), M.trim);
     mirrorGroup.add(stalk);
     const face = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.24, 2, 4, 4), M.chrome);
@@ -165,24 +166,52 @@ function buildChassis() {
   }
 
   // --- Glass (reflective) ---
-  // Windshield (leaning forward).
-  addPart(chassis, new THREE.BoxGeometry(1.62, 0.72, 0.06, 8, 8, 2), M.glass, [0, 0.92, 0.82], [-0.32, 0, 0]);
+  // Windshield — lower and more raked than the jeep.
+  addPart(chassis, new THREE.BoxGeometry(1.72, 0.6, 0.06, 8, 8, 2), M.glass, [0, 0.82, 0.78], [-0.4, 0, 0]);
   // Rear window.
-  addPart(chassis, new THREE.BoxGeometry(1.6, 0.6, 0.06, 8, 6, 2), M.glass, [0, 0.95, -1.32], [0.28, 0, 0]);
+  addPart(chassis, new THREE.BoxGeometry(1.7, 0.5, 0.06, 8, 6, 2), M.glass, [0, 0.85, -1.22], [0.3, 0, 0]);
   // Side windows.
-  addPart(chassis, new THREE.BoxGeometry(0.06, 0.52, 1.7, 2, 6, 18), M.glass, [-0.9, 0.98, -0.25]);
-  addPart(chassis, new THREE.BoxGeometry(0.06, 0.52, 1.7, 2, 6, 18), M.glass, [0.9, 0.98, -0.25]);
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.46, 1.6, 2, 6, 18), M.glass, [-0.96, 0.88, -0.2]);
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.46, 1.6, 2, 6, 18), M.glass, [0.96, 0.88, -0.2]);
 
-  // --- Wheel arches (half-circle arcs over each wheel) ---
-  // Smaller radius + lower position so they sit flush with the body panels.
-  const archGeo = new THREE.TorusGeometry(0.54, 0.08, 8, 16, Math.PI);
-  for (const [ax, az] of [[-0.95, 1.5], [0.95, 1.5], [-0.95, -1.5], [0.95, -1.5]]) {
+  // --- Extended fender flares / wheel arches (wider than jeep's) ---
+  const archGeo = new THREE.TorusGeometry(0.56, 0.12, 10, 20, Math.PI);
+  for (const [ax, az] of [[-1.05, 1.5], [1.05, 1.5], [-1.05, -1.5], [1.05, -1.5]]) {
     addPart(chassis, archGeo, M.plastic, [ax, -0.32, az], [0, Math.PI / 2, 0]);
   }
+  // Extra fender flare body extension (wider plastic panels).
+  for (const [ax, az] of [[-1.12, 1.5], [1.12, 1.5], [-1.12, -1.5], [1.12, -1.5]]) {
+    addPart(chassis, new THREE.BoxGeometry(0.14, 0.4, 0.9, 4, 6, 8), M.plastic, [ax, -0.1, az]);
+  }
 
-  // --- Number plates (front + rear) moved outward so they're visible ---
-  addNumberPlate(chassis, [0, -0.02, 2.32], 0);
-  addNumberPlate(chassis, [0, -0.02, -2.32], Math.PI);
+  // --- Roof rack bar with 4 rally spotlight pods ---
+  // Roof rack crossbar.
+  addPart(chassis, new THREE.BoxGeometry(1.7, 0.06, 0.12, 12, 2, 2), M.chrome, [0, 1.25, 0.7]);
+  // Rack support legs.
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.12, 0.06, 2, 2, 2), M.chrome, [-0.7, 1.19, 0.7]);
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.12, 0.06, 2, 2, 2), M.chrome, [0.7, 1.19, 0.7]);
+  // 4 rally spotlights (small cylinders on top of the bar).
+  const spotGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 16, 2);
+  for (const sx of [-0.55, -0.2, 0.2, 0.55]) {
+    addPart(chassis, spotGeo, M.headlight, [sx, 1.32, 0.7], [Math.PI / 2, 0, 0]);
+    // Spotlight housing (ring around each).
+    addPart(chassis, new THREE.TorusGeometry(0.08, 0.02, 8, 12), M.chrome, [sx, 1.32, 0.73], [Math.PI / 2, 0, 0]);
+  }
+
+  // --- Small rear spoiler (thin angled wing behind the cabin) ---
+  // Spoiler blade.
+  addPart(chassis, new THREE.BoxGeometry(1.6, 0.06, 0.4, 16, 2, 8), M.trim, [0, 1.22, -1.5], [-0.15, 0, 0]);
+  // Spoiler uprights.
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.2, 0.06, 2, 4, 2), M.chrome, [-0.5, 1.1, -1.45]);
+  addPart(chassis, new THREE.BoxGeometry(0.06, 0.2, 0.06, 2, 4, 2), M.chrome, [0.5, 1.1, -1.45]);
+
+  // --- Mud flaps (small boxes behind rear wheels) ---
+  addPart(chassis, new THREE.BoxGeometry(0.3, 0.28, 0.06, 4, 4, 2), M.plastic, [-0.95, -0.45, -1.9]);
+  addPart(chassis, new THREE.BoxGeometry(0.3, 0.28, 0.06, 4, 4, 2), M.plastic, [0.95, -0.45, -1.9]);
+
+  // --- Number plates (front + rear) ---
+  addNumberPlate(chassis, [0, -0.06, 2.32], 0);
+  addNumberPlate(chassis, [0, -0.06, -2.32], Math.PI);
 
   // --- Interior (visible through transparent glass) ---
   buildInterior(chassis);
